@@ -4,6 +4,7 @@ import android.graphics.Bitmap;
 import android.media.Image;
 import android.os.Handler;
 import android.os.Looper;
+import android.content.Context;
 import android.util.Log;
 import android.util.Pair;
 
@@ -20,10 +21,13 @@ import com.google.ar.sceneform.ux.ArFragment;
 
 import java.util.List;
 
+import com.example.pathfinder.tts.TTS;
+
 public class Manager {
     private final DetectorModel detector;
     private final OverlayView overlayView;
     private final RiskAnalyzer riskAnalyzer;
+    private final TTS tts;
 
     private final ArFragment arFragment;
 
@@ -33,12 +37,12 @@ public class Manager {
 
     float EPSILON = 0.05f; // distância mínima para considerar válida
 
-    public Manager(DetectorModel detector, OverlayView overlayView, ArFragment arFragment, int screenWidth, int screenHeight) {
+    public Manager(Context context, DetectorModel detector, OverlayView overlayView, ArFragment arFragment, int screenWidth, int screenHeight) {
         this.detector = detector;
         this.overlayView = overlayView;
         this.arFragment = arFragment;
         this.riskAnalyzer = new RiskAnalyzer(screenWidth, screenHeight);
-
+        this.tts = new TTS(context);
     }
 
     public void startArCore() {
@@ -103,5 +107,13 @@ public class Manager {
         return results;
     }
 
+    public void testSpeak() {
+        int result = tts.speak("Falando");
+        if (result != TTS.SUCCESS)
+            Log.e("Manager", "Falha ao falar: " + result);
+    }
 
+    public void shutdown() {
+        tts.shutdown();
+    }
 }

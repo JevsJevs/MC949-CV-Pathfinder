@@ -85,7 +85,7 @@ public class MainActivity extends AppCompatActivity {
         int screenHeight = getResources().getDisplayMetrics().heightPixels;
 
         managerExecutor = Executors.newSingleThreadExecutor();
-        manager = new Manager(detector, overlayView, arFragment, screenWidth, screenHeight);
+        manager = new Manager(this, detector, overlayView, arFragment, screenWidth, screenHeight);
 
         if (allPermissionsGranted()) {
             manager.startArCore();
@@ -109,7 +109,7 @@ public class MainActivity extends AppCompatActivity {
 
         soundButton.setOnClickListener(v -> {
             Toast.makeText(this, "Sound button clicked", Toast.LENGTH_SHORT).show();
-            // Action for this button will go here later
+            manager.testSpeak();  // Temporary method for testing, remove later
         });
 
         repeatButton.setOnClickListener(v -> {
@@ -132,6 +132,9 @@ public class MainActivity extends AppCompatActivity {
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
+        }
+        if (manager != null) {
+            manager.shutdown();
         }
     }
 
