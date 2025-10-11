@@ -31,7 +31,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:src="@android:drawable/ic_lock_power_off"
-            android:contentDescription="On/Off"
+            android:contentDescription="@string/on_off_button_text"
             android:background="?attr/selectableItemBackgroundBorderless"
             app:tint="@android:color/white" />
 
@@ -42,7 +42,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:src="@android:drawable/ic_lock_silent_mode_off"
-            android:contentDescription="Sound"
+            android:contentDescription="@string/sound_button_text"
             android:background="?attr/selectableItemBackgroundBorderless"
             app:tint="@android:color/white" />
 
@@ -53,7 +53,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:src="@android:drawable/ic_menu_add"
-            android:contentDescription="Third Button"
+            android:contentDescription="@string/third_button_text"
             android:background="?attr/selectableItemBackgroundBorderless"
             app:tint="@android:color/white" />
 
