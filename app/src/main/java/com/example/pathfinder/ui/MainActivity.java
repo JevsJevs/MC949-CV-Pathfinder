@@ -13,6 +13,7 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.core.CameraSelector;
+import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
@@ -22,6 +23,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.example.pathfinder.R;
+import com.example.pathfinder.manager.Manager;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.util.concurrent.ExecutionException;
@@ -33,6 +35,8 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private ExecutorService cameraExecutor;
     private PreviewView viewFinder;
+
+    private Manager manager;
 
     // Register the permissions callback, which handles the user's response to the
     // system permissions dialog. Save the return value, an instance of
@@ -59,6 +63,9 @@ public class MainActivity extends AppCompatActivity {
 
         viewFinder = findViewById(R.id.viewFinder);
         setupButtons();
+
+        manager = new Manager();
+        cameraExecutor = Executors.newSingleThreadExecutor();
 
         // Check for camera permission and request it if it's not granted
         if (allPermissionsGranted()) {
@@ -107,6 +114,16 @@ public class MainActivity extends AppCompatActivity {
                 Preview preview = new Preview.Builder().build();
                 preview.setSurfaceProvider(viewFinder.getSurfaceProvider());
 
+                ImageAnalysis imageAnalysis = new ImageAnalysis.Builder()
+                        // Set the resolution for the analysis
+                        // .setTargetResolution(new Size(1280, 720)) // Optional
+                        // Block subsequent images until the current one is closed
+                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                        .build();
+
+                // 5. Set the analyzer on the use case
+                imageAnalysis.setAnalyzer(cameraExecutor, manager::process);
+
                 // Select the back camera
                 CameraSelector cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA;
 
@@ -114,7 +131,7 @@ public class MainActivity extends AppCompatActivity {
                 cameraProvider.unbindAll();
 
                 // Bind the use cases to the camera
-                cameraProvider.bindToLifecycle(this, cameraSelector, preview);
+                cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageAnalysis);
 
             } catch (ExecutionException | InterruptedException e) {
                 // Handle any errors (like the process being killed)
