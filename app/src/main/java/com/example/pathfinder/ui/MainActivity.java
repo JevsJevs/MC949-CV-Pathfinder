@@ -1,4 +1,4 @@
-package com.example.pathfinder;
+package com.example.pathfinder.ui;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
@@ -13,6 +13,8 @@ import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+
+import com.example.pathfinder.R;
 
 public class MainActivity extends AppCompatActivity {
     // Register the permissions callback, which handles the user's response to the
