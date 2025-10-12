@@ -9,9 +9,29 @@
 
     <androidx.camera.view.PreviewView
         android:id="@+id/viewFinder"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/footerLayout" />
 
+
+    <TextView
+        android:id="@+id/permissionDeniedText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="#80000000"
+        android:padding="16dp"
+        android:text="@string/camera_permission_is_required"
+        android:textColor="@android:color/white"
+        android:textSize="18sp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@+id/viewFinder"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:visibility="visible" />
     <!-- Footer Container -->
     <LinearLayout
         android:id="@+id/footerLayout"
@@ -46,14 +66,14 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             app:tint="@android:color/white" />
 
-        <!-- Button 3: Third Button -->
+        <!-- Button 3: Repeat Button -->
         <ImageButton
-            android:id="@+id/thirdButton"
+            android:id="@+id/repeatButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:src="@android:drawable/ic_menu_add"
-            android:contentDescription="@string/third_button_text"
+            android:src="@android:drawable/ic_menu_revert"
+            android:contentDescription="@string/repeat_button_text"
             android:background="?attr/selectableItemBackgroundBorderless"
             app:tint="@android:color/white" />
 

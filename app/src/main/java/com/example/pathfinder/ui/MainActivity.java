@@ -4,7 +4,9 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.widget.ImageButton;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -35,6 +37,7 @@ public class MainActivity extends AppCompatActivity {
     private ExecutorService cameraExecutor;
     private PreviewView viewFinder;
 
+    private TextView permissionDeniedText;
     private Manager manager;
 
     // Register the permissions callback, which handles the user's response to the
@@ -44,8 +47,11 @@ public class MainActivity extends AppCompatActivity {
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
                 if (isGranted) {
                     Toast.makeText(this, "Permissao da camera concedida", Toast.LENGTH_SHORT).show();
+                    permissionDeniedText.setVisibility(View.GONE);
+                    startCamera();
                 } else {
                     Toast.makeText(this, "Permissao da camera recusada", Toast.LENGTH_SHORT).show();
+                    permissionDeniedText.setVisibility(View.VISIBLE);
                 }
             });
 
@@ -60,19 +66,17 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
+        permissionDeniedText = findViewById(R.id.permissionDeniedText);
         viewFinder = findViewById(R.id.viewFinder);
         setupButtons();
 
         manager = new Manager();
         cameraExecutor = Executors.newSingleThreadExecutor();
 
-        // Check for camera permission and request it if it's not granted
         if (allPermissionsGranted()) {
-            // You can use the API that requires the permission.
             startCamera();
         } else {
-            // You can directly ask for the permission.
-            // The registered ActivityResultCallback gets the result of this request.
+            permissionDeniedText.setVisibility(View.VISIBLE);
             requestPermissionLauncher.launch(Manifest.permission.CAMERA);
         }
     }
@@ -81,7 +85,7 @@ public class MainActivity extends AppCompatActivity {
         // Find the buttons from the layout
         ImageButton onOffButton = findViewById(R.id.onOffButton);
         ImageButton soundButton = findViewById(R.id.soundButton);
-        ImageButton thirdButton = findViewById(R.id.thirdButton);
+        ImageButton repeatButton = findViewById(R.id.repeatButton);
 
         // Set click listeners
         onOffButton.setOnClickListener(v -> {
@@ -94,8 +98,8 @@ public class MainActivity extends AppCompatActivity {
             // Action for this button will go here later
         });
 
-        thirdButton.setOnClickListener(v -> {
-            Toast.makeText(this, "Third button clicked", Toast.LENGTH_SHORT).show();
+        repeatButton.setOnClickListener(v -> {
+            Toast.makeText(this, "Repeat button clicked", Toast.LENGTH_SHORT).show();
             // Action for this button will go here later
         });
     }
