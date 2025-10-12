@@ -20,6 +20,8 @@ import com.google.ar.sceneform.FrameTime;
 import com.google.ar.sceneform.ux.ArFragment;
 
 import java.util.List;
+import androidx.camera.core.ImageProxy;
+import androidx.lifecycle.LiveData;
 
 import com.example.pathfinder.tts.TTS;
 
@@ -105,6 +107,10 @@ public class Manager {
         });
 
         return results;
+    }
+
+    public LiveData<Boolean> getTtsInitialized() {
+        return tts.isInitialized();
     }
 
     public void testSpeak() {

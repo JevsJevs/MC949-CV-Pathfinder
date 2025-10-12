@@ -32,6 +32,8 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
     private OverlayView overlayView;
+    private ExecutorService cameraExecutor;
+    private TextView ttsStatus;
 
     private TextView permissionDeniedText;
     private Manager manager;
@@ -86,6 +88,15 @@ public class MainActivity extends AppCompatActivity {
 
         managerExecutor = Executors.newSingleThreadExecutor();
         manager = new Manager(this, detector, overlayView, arFragment, screenWidth, screenHeight);
+
+        ttsStatus = findViewById(R.id.ttsStatus);
+        manager.getTtsInitialized().observe(this, isInitialized -> {
+            if (isInitialized) {
+                ttsStatus.setVisibility(View.GONE);
+            } else {
+                ttsStatus.setVisibility(View.VISIBLE);
+            }
+        });
 
         if (allPermissionsGranted()) {
             manager.startArCore();

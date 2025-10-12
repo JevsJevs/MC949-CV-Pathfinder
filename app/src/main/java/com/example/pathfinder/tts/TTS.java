@@ -4,6 +4,9 @@ import android.content.Context;
 import android.speech.tts.TextToSpeech;
 import android.util.Log;
 
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
+
 import java.util.Locale;
 
 public class TTS implements TTSInterface, TextToSpeech.OnInitListener {
@@ -16,7 +19,7 @@ public class TTS implements TTSInterface, TextToSpeech.OnInitListener {
     public static final int TEXT_EMPTY = 2;
 
     private final TextToSpeech tts;
-    private boolean isInitialized = false;
+    private final MutableLiveData<Boolean> isInitialized = new MutableLiveData<>(false);
 
     public TTS(Context context) {
         tts = new TextToSpeech(context, this);
@@ -30,12 +33,14 @@ public class TTS implements TTSInterface, TextToSpeech.OnInitListener {
             if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
                 // Language not supported
                 Log.e(TAG, "Language not supported: pt-BR");
+                isInitialized.postValue(false);
             } else {
                 Log.i(TAG, "Initialization successful");
-                isInitialized = true;
+                isInitialized.postValue(true);
             }
         } else {
             Log.e(TAG, "Initialization failed");
+            isInitialized.postValue(false);
         }
     }
 
@@ -46,13 +51,17 @@ public class TTS implements TTSInterface, TextToSpeech.OnInitListener {
             return TEXT_EMPTY;
         if (text.length() > TextToSpeech.getMaxSpeechInputLength())
             return TEXT_TOO_LONG;
-        if (!isInitialized)
+        if (Boolean.FALSE.equals(isInitialized.getValue()))
             return NOT_INITIALIZED;
 
         int result = tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, null);
         if (result == TextToSpeech.ERROR)
             return SPEAK_FAILED;
         return SUCCESS;
+    }
+
+    public LiveData<Boolean> isInitialized() {
+        return isInitialized;
     }
 
     public void shutdown() {
