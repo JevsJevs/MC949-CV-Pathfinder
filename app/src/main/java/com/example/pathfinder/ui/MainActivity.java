@@ -24,6 +24,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.example.pathfinder.R;
+import com.example.pathfinder.detection.Detector;
 import com.example.pathfinder.manager.Manager;
 import com.google.common.util.concurrent.ListenableFuture;
 
@@ -39,6 +40,7 @@ public class MainActivity extends AppCompatActivity {
 
     private TextView permissionDeniedText;
     private Manager manager;
+    private ExecutorService managerExecutor;
 
     // Register the permissions callback, which handles the user's response to the
     // system permissions dialog. Save the return value, an instance of
@@ -70,7 +72,10 @@ public class MainActivity extends AppCompatActivity {
         viewFinder = findViewById(R.id.viewFinder);
         setupButtons();
 
-        manager = new Manager();
+        Detector detector = new Detector(this);
+
+        managerExecutor = Executors.newSingleThreadExecutor();
+        manager = new Manager(detector);
         cameraExecutor = Executors.newSingleThreadExecutor();
 
         if (allPermissionsGranted()) {

@@ -1,13 +1,23 @@
 package com.example.pathfinder.manager;
 
+import android.graphics.Bitmap;
 import android.util.Log;
 
 import androidx.camera.core.ImageProxy;
+
+import com.example.pathfinder.detection.Detector;
 
 public class Manager {
 
     // 1. Add a TAG for logging. It's convention to use the class name.
     private static final String TAG = "Manager";
+
+    private Detector detector;
+
+    public Manager(Detector detector) {
+        this.detector = detector;
+    }
+
     /**
      * This method will be called for each frame received from the camera.
      * The ImageProxy contains the image data and metadata.
@@ -15,6 +25,10 @@ public class Manager {
      * @param imageProxy The camera frame to be processed.
      */
     public void process(ImageProxy imageProxy) {
+
+        Bitmap receivedImage = imageProxy.toBitmap();
+
+        detector.detect(imageProxy.toBitmap());
         // In a real application, you would perform image processing here.
         // For now, we can log the timestamp of the frame.
         long frameTimestamp = imageProxy.getImageInfo().getTimestamp();
