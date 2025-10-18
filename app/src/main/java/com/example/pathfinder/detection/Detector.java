@@ -25,7 +25,7 @@ public class Detector {
 
             detector = ObjectDetector.createFromFileAndOptions(
                     context,
-                    "yolov8m-seg-fp32.tflite",
+                    "yolov8s-seg-fp32.tflite",
                     optionsBuilder.build()
             );
 
