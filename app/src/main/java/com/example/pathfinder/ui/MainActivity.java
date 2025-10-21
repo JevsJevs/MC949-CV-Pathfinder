@@ -13,10 +13,6 @@ import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.camera.core.CameraSelector;
-import androidx.camera.core.ImageAnalysis;
-import androidx.camera.core.Preview;
-import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
@@ -25,20 +21,21 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.example.pathfinder.R;
 import com.example.pathfinder.manager.Manager;
-import com.google.common.util.concurrent.ListenableFuture;
-
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import com.google.ar.core.Frame;
+import com.google.ar.core.Pose;
+import com.google.ar.sceneform.FrameTime;
+import com.google.ar.sceneform.ux.ArFragment;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
-    private ExecutorService cameraExecutor;
     private PreviewView viewFinder;
 
     private TextView permissionDeniedText;
     private Manager manager;
+
+    private ArFragment arFragment;
+
 
     // Register the permissions callback, which handles the user's response to the
     // system permissions dialog. Save the return value, an instance of
@@ -48,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
                 if (isGranted) {
                     Toast.makeText(this, "Permissao da camera concedida", Toast.LENGTH_SHORT).show();
                     permissionDeniedText.setVisibility(View.GONE);
-                    startCamera();
+                    startArCore();
                 } else {
                     Toast.makeText(this, "Permissao da camera recusada", Toast.LENGTH_SHORT).show();
                     permissionDeniedText.setVisibility(View.VISIBLE);
@@ -67,14 +64,15 @@ public class MainActivity extends AppCompatActivity {
         });
 
         permissionDeniedText = findViewById(R.id.permissionDeniedText);
-        viewFinder = findViewById(R.id.viewFinder);
+
+        arFragment = (ArFragment) getSupportFragmentManager().findFragmentById(R.id.arFragment);
+
         setupButtons();
 
         manager = new Manager();
-        cameraExecutor = Executors.newSingleThreadExecutor();
 
         if (allPermissionsGranted()) {
-            startCamera();
+            startArCore();
         } else {
             permissionDeniedText.setVisibility(View.VISIBLE);
             requestPermissionLauncher.launch(Manifest.permission.CAMERA);
@@ -104,43 +102,27 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void startCamera() {
-        // Get a future instance of the camera provider
-        ListenableFuture<ProcessCameraProvider> cameraProviderFuture = ProcessCameraProvider.getInstance(this);
+    private void startArCore() {
+        arFragment = (ArFragment) getSupportFragmentManager().findFragmentById(R.id.arFragment);
 
-        // Add a listener to the future
-        cameraProviderFuture.addListener(() -> {
-            try {
-                ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
+        if (arFragment == null) {
+            return;
+        }
 
-                // Set up the Preview use case
-                Preview preview = new Preview.Builder().build();
-                preview.setSurfaceProvider(viewFinder.getSurfaceProvider());
+        arFragment.getArSceneView().getScene().addOnUpdateListener(this::handleFrameUpdate);
+    }
 
-                ImageAnalysis imageAnalysis = new ImageAnalysis.Builder()
-                        // Set the resolution for the analysis
-                        // .setTargetResolution(new Size(1280, 720)) // Optional
-                        // Block subsequent images until the current one is closed
-                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                        .build();
+    private void handleFrameUpdate(FrameTime frameTime) {
+        Frame frame = arFragment.getArSceneView().getArFrame();
+        if (frame == null) return;
 
-                // 5. Set the analyzer on the use case
-                imageAnalysis.setAnalyzer(cameraExecutor, manager::process);
-
-                // Select the back camera
-                CameraSelector cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA;
-
-                // Unbind everything before rebinding
-                cameraProvider.unbindAll();
-
-                // Bind the use cases to the camera
-                cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageAnalysis);
-
-            } catch (ExecutionException | InterruptedException e) {
-                // Handle any errors (like the process being killed)
-                Log.e(TAG, "Use case binding failed", e);
-            }
-        }, ContextCompat.getMainExecutor(this)); // Run on the main thread
+        try {
+            Pose pose = frame.getCamera().getPose();
+            float[] t = pose.getTranslation();
+            Log.d("ARPose", "Posição: x=" + t[0] + " y=" + t[1] + " z=" + t[2]);
+        } catch (Exception e) {
+            Log.e("ARCore", "Erro ao capturar frame: " + e.getMessage());
+        }
     }
 
 
@@ -150,11 +132,30 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        // Shut down the executor to free up resources
-        if (cameraExecutor != null) {
-            cameraExecutor.shutdown();
+    protected void onResume() {
+        super.onResume();
+        if (arFragment != null) {
+            try {
+                arFragment.getArSceneView().resume();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
+    }
+
+    @Override
+    protected void onPause() {
+        if (arFragment != null) {
+            arFragment.getArSceneView().pause();
+        }
+        super.onPause();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (arFragment != null) {
+            arFragment.getArSceneView().destroy();
+        }
+        super.onDestroy();
     }
 }

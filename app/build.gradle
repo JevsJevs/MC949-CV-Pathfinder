@@ -44,5 +44,7 @@ dependencies {
     implementation libs.camera.lifecycle
     implementation libs.androidx.camera.view
     implementation libs.androidx.camera.extensions
+    implementation 'com.google.ar:core:1.31.0'
+    implementation 'com.gorisse.thomas.sceneform:sceneform:1.23.0'
 
 }
