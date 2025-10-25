@@ -1,11 +1,14 @@
 package com.example.pathfinder.manager;
 
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.util.Log;
 
 import androidx.camera.core.ImageProxy;
 
 import com.example.pathfinder.detection.Detector;
+
+import java.util.logging.FileHandler;
 
 public class Manager {
 
@@ -26,7 +29,9 @@ public class Manager {
      */
     public void process(ImageProxy imageProxy) {
 
-        Bitmap receivedImage = imageProxy.toBitmap();
+//        Bitmap receivedImage = imageProxy.toBitmap();
+//        Bitmap receivedImage = BitmapFactory.decodeFile("assets/Yoloex.jpeg");
+
 
         detector.detect(imageProxy.toBitmap());
         // In a real application, you would perform image processing here.
