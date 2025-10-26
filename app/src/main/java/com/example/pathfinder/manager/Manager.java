@@ -29,10 +29,6 @@ public class Manager {
      */
     public void process(ImageProxy imageProxy) {
 
-//        Bitmap receivedImage = imageProxy.toBitmap();
-//        Bitmap receivedImage = BitmapFactory.decodeFile("assets/Yoloex.jpeg");
-
-
         detector.detect(imageProxy.toBitmap());
         // In a real application, you would perform image processing here.
         // For now, we can log the timestamp of the frame.

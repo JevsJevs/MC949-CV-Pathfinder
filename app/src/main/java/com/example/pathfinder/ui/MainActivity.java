@@ -75,6 +75,7 @@ public class MainActivity extends AppCompatActivity {
 
         permissionDeniedText = findViewById(R.id.permissionDeniedText);
         viewFinder = findViewById(R.id.viewFinder);
+        viewFinder.setKeepScreenOn(true);
         setupButtons();
 
 
