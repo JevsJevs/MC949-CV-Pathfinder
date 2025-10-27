@@ -22,38 +22,6 @@ import org.tensorflow.lite.support.common.ops.NormalizeOp;
 import org.tensorflow.lite.support.image.ImageProcessor;
 import org.tensorflow.lite.support.image.TensorImage;
 import org.tensorflow.lite.support.tensorbuffer.TensorBuffer;
-
-
-class BoundingBox {
-    float x1;
-    float y1;
-    float x2;
-
-    public BoundingBox(float x1, float y1, float x2, float y2, float cx, float cy, float h, float w, float cnf, float cls, String clsName) {
-        this.x1 = x1;
-        this.y1 = y1;
-        this.x2 = x2;
-        this.y2 = y2;
-        this.cx = cx;
-        this.cy = cy;
-        this.h = h;
-        this.w = w;
-        this.cnf = cnf;
-        this.cls = cls;
-        this.clsName = clsName;
-    }
-
-    float y2;
-    float cx;
-    float cy;
-    float h;
-    float w;
-    float cnf;
-    float cls;
-    String clsName;
-};
-
-
 public class Detector {
 
     //
@@ -151,6 +119,7 @@ public class Detector {
         outputs.put(0, outputBuffer.getBuffer().rewind());
 
         interpreter.runForMultipleInputsOutputs(new Object[]{procImg.getBuffer()}, outputs);
+
 
         float[] detections = outputBuffer.getFloatArray();
 
