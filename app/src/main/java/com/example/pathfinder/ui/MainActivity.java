@@ -20,19 +20,28 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.example.pathfinder.R;
+import com.example.pathfinder.detection.YoloSmall;
 import com.example.pathfinder.manager.Manager;
 import com.google.ar.core.Frame;
 import com.google.ar.core.Pose;
 import com.google.ar.sceneform.FrameTime;
 import com.google.ar.sceneform.ux.ArFragment;
+import com.google.common.util.concurrent.ListenableFuture;
+
+import java.io.IOException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
     private PreviewView viewFinder;
+    private OverlayView overlayView;
 
     private TextView permissionDeniedText;
     private Manager manager;
+    private ExecutorService managerExecutor;
 
     private ArFragment arFragment;
 
@@ -67,9 +76,25 @@ public class MainActivity extends AppCompatActivity {
 
         arFragment = (ArFragment) getSupportFragmentManager().findFragmentById(R.id.arFragment);
 
+        overlayView = findViewById(R.id.overlay);
         setupButtons();
 
-        manager = new Manager();
+
+        String MODEL_PATH = "yolo11s_float32.tflite";
+        String LABELS_PATH = "labels.txt";
+
+        YoloSmall detector = null;
+        try{
+            detector = new YoloSmall(this, MODEL_PATH, LABELS_PATH);
+        }
+        catch (IOException e){
+            Log.e(e.getMessage(), "Failed to load model");
+        }
+
+
+        managerExecutor = Executors.newSingleThreadExecutor();
+        manager = new Manager(detector, overlayView);
+        cameraExecutor = Executors.newSingleThreadExecutor();
 
         if (allPermissionsGranted()) {
             startArCore();

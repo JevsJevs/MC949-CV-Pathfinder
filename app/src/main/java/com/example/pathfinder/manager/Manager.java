@@ -1,27 +1,45 @@
 package com.example.pathfinder.manager;
 
-import android.util.Log;
+import android.graphics.Bitmap;
+import android.os.Handler;
+import android.os.Looper;
+import android.util.Pair;
 
 import androidx.camera.core.ImageProxy;
+import com.example.pathfinder.detection.*;
+import com.example.pathfinder.ui.OverlayView;
+import java.util.List;
+import java.util.Map;
 
 public class Manager {
+    private final DetectorModel detector;
+    private final OverlayView overlayView;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
-    // 1. Add a TAG for logging. It's convention to use the class name.
-    private static final String TAG = "Manager";
-    /**
-     * This method will be called for each frame received from the camera.
-     * The ImageProxy contains the image data and metadata.
-     *
-     * @param imageProxy The camera frame to be processed.
-     */
+    public Manager(DetectorModel detector, OverlayView overlayView) {
+        this.detector = detector;
+        this.overlayView = overlayView;
+    }
+
     public void process(ImageProxy imageProxy) {
-        // In a real application, you would perform image processing here.
-        // For now, we can log the timestamp of the frame.
-        long frameTimestamp = imageProxy.getImageInfo().getTimestamp();
-        Log.d(TAG, "Processing frame with timestamp: " + frameTimestamp);
+        if (detector == null) {
+            imageProxy.close();
+            return;
+        }
 
-        // IMPORTANT: You must close the ImageProxy when you are done with it.
-        // Failure to do so will stop the camera from producing new frames.
+        Bitmap bitmap = imageProxy.toBitmap();
+        if (bitmap == null) {
+            imageProxy.close();
+            return;
+        }
+
+        Pair<Bitmap, List<BoundingBox>> results = detector.Detect(bitmap);
+
+        // Post the results to the UI thread to update the overlay
+        mainHandler.post(() -> {
+            overlayView.setResults(results.second);
+        });
+
         imageProxy.close();
     }
 }
