@@ -22,14 +22,9 @@ import androidx.core.view.WindowInsetsCompat;
 import com.example.pathfinder.R;
 import com.example.pathfinder.detection.YoloSmall;
 import com.example.pathfinder.manager.Manager;
-import com.google.ar.core.Frame;
-import com.google.ar.core.Pose;
-import com.google.ar.sceneform.FrameTime;
 import com.google.ar.sceneform.ux.ArFragment;
-import com.google.common.util.concurrent.ListenableFuture;
 
 import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -54,7 +49,7 @@ public class MainActivity extends AppCompatActivity {
                 if (isGranted) {
                     Toast.makeText(this, "Permissao da camera concedida", Toast.LENGTH_SHORT).show();
                     permissionDeniedText.setVisibility(View.GONE);
-                    startArCore();
+                    manager.startArCore();
                 } else {
                     Toast.makeText(this, "Permissao da camera recusada", Toast.LENGTH_SHORT).show();
                     permissionDeniedText.setVisibility(View.VISIBLE);
@@ -84,20 +79,17 @@ public class MainActivity extends AppCompatActivity {
         String LABELS_PATH = "labels.txt";
 
         YoloSmall detector = null;
-        try{
+        try {
             detector = new YoloSmall(this, MODEL_PATH, LABELS_PATH);
-        }
-        catch (IOException e){
+        } catch (IOException e) {
             Log.e(e.getMessage(), "Failed to load model");
         }
 
-
         managerExecutor = Executors.newSingleThreadExecutor();
-        manager = new Manager(detector, overlayView);
-        cameraExecutor = Executors.newSingleThreadExecutor();
+        manager = new Manager(detector, overlayView, arFragment);
 
         if (allPermissionsGranted()) {
-            startArCore();
+            manager.startArCore();
         } else {
             permissionDeniedText.setVisibility(View.VISIBLE);
             requestPermissionLauncher.launch(Manifest.permission.CAMERA);
@@ -126,30 +118,6 @@ public class MainActivity extends AppCompatActivity {
             // Action for this button will go here later
         });
     }
-
-    private void startArCore() {
-        arFragment = (ArFragment) getSupportFragmentManager().findFragmentById(R.id.arFragment);
-
-        if (arFragment == null) {
-            return;
-        }
-
-        arFragment.getArSceneView().getScene().addOnUpdateListener(this::handleFrameUpdate);
-    }
-
-    private void handleFrameUpdate(FrameTime frameTime) {
-        Frame frame = arFragment.getArSceneView().getArFrame();
-        if (frame == null) return;
-
-        try {
-            Pose pose = frame.getCamera().getPose();
-            float[] t = pose.getTranslation();
-            Log.d("ARPose", "Posição: x=" + t[0] + " y=" + t[1] + " z=" + t[2]);
-        } catch (Exception e) {
-            Log.e("ARCore", "Erro ao capturar frame: " + e.getMessage());
-        }
-    }
-
 
     private boolean allPermissionsGranted() {
         return ContextCompat.checkSelfPermission(
