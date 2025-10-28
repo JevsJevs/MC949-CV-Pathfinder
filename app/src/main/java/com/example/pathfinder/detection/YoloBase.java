@@ -9,6 +9,9 @@ import android.util.Pair;
 import org.tensorflow.lite.DataType;
 import org.tensorflow.lite.Interpreter;
 import org.tensorflow.lite.gpu.CompatibilityList;
+import org.tensorflow.lite.Delegate;
+import org.tensorflow.lite.DelegateFactory;
+import org.tensorflow.lite.gpu.GpuDelegate;
 import org.tensorflow.lite.support.common.FileUtil;
 import org.tensorflow.lite.support.common.ops.CastOp;
 import org.tensorflow.lite.support.common.ops.NormalizeOp;
@@ -36,7 +39,18 @@ public class YoloBase implements DetectorModel{
         MappedByteBuffer modelFile = FileUtil.loadMappedFile(context, modelPath);
         Interpreter.Options options = new Interpreter.Options();
 
-        options.setNumThreads(Runtime.getRuntime().availableProcessors());
+        CompatibilityList compatList = new CompatibilityList();
+        if(compatList.isDelegateSupportedOnThisDevice()){
+            // if the device has a supported GPU, add the GPU delegate
+            var delegateOptions = compatList.getBestOptionsForThisDevice();
+            options.addDelegate(new GpuDelegate(delegateOptions));
+            Log.i("YoloBase", "GPU delegate is supported and added.");
+        } else {
+            // if the GPU is not supported, use CPU
+            options.setNumThreads(Runtime.getRuntime().availableProcessors());
+            Log.i("YoloBase", "GPU delegate is not supported. Using CPU.");
+        }
+
         this.interpreter = new Interpreter(modelFile, options);
 
         List<String> labelList = new ArrayList<>();
