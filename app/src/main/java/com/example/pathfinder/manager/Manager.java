@@ -12,9 +12,13 @@ import com.example.pathfinder.detection.DetectorModel;
 import com.example.pathfinder.ui.OverlayView;
 import com.example.pathfinder.utils.ImageUtils;
 import com.google.ar.core.Frame;
+import com.google.ar.core.Plane;
 import com.google.ar.core.Pose;
+import com.google.ar.core.TrackingState;
 import com.google.ar.sceneform.FrameTime;
 import com.google.ar.sceneform.ux.ArFragment;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -59,42 +63,59 @@ public class Manager {
             isProcessing = true;
 
             long startTime = System.nanoTime();
-
-            Bitmap bitmap = ImageUtils.convertImageToBitmap(image);
-            long afterConversion = System.nanoTime();
-            Log.d("Performance", "Tempo de conversão: " + (afterConversion - startTime) / 1_000_000.0 + " ms");
-            startTime = System.nanoTime();
-            process(bitmap, frame);
-            long endTime = System.nanoTime();
-            Log.d("Performance", "Tempo de processamento YOLO: " + (endTime - startTime) / 1_000_000.0 + " ms");
-            isProcessing = false;
+            Bitmap bitmap = ImageUtils.convertImageToBitmap(image); //convert frame to bitmap
             image.close();
 
-            Pose pose = frame.getCamera().getPose();
-            float[] t = pose.getTranslation();
-            Log.d("ARPose", "Posição: x=" + t[0] + " y=" + t[1] + " z=" + t[2]);
+            long afterConversion = System.nanoTime();
+            Log.d("Performance", "Tempo de conversão: " + (afterConversion - startTime) / 1_000_000.0 + " ms");
 
-        }catch (Exception e) {
+            startTime = System.nanoTime();
+            Pair<Bitmap, List<BoundingBox>> detectionResult = process(bitmap); //call model
+            long endTime = System.nanoTime();
+            Log.d("Performance", "Tempo de processamento YOLO: " + (endTime - startTime) / 1_000_000.0 + " ms");
+
+            List<Pair<BoundingBox, Float>> nearObjects = getObjectsWithLessThanDistance(detectionResult, 1f, frame); //near objects, less than threshold
+
+            for (Pair<BoundingBox, Float> obj : nearObjects) {
+                Log.d("ARCoreDistance", "Objeto: " + obj.first.clsName + ", Distância: " + String.format("%.2f", obj.second) + " metros");
+            }
+
+            float distanceToNearestWall = distanceToNearestWall(frame);
+            if (distanceToNearestWall < 1f) {
+                Log.d("ARCoreDistance", "Parede, Distancia: " + String.format("%.2f", distanceToNearestWall) + " metros");
+            }
+
+            isProcessing = false;
+        } catch (Exception e) {
             Log.e("ARCore", "Erro ao capturar frame: " + e.getMessage());
         }
     }
 
-    public void process(Bitmap image, Frame frame) {
+    public Pair<Bitmap, List<BoundingBox>> process(Bitmap image) {
         Pair<Bitmap, List<BoundingBox>> results = detector.Detect(image);
-
-        List<BoundingBox> boundingBoxes = results.second;
-
-        for (BoundingBox box : boundingBoxes) {
-            int centerX = (int) box.cx;
-            int centerY = (int)box.cy;
-
-            float distance = calculateDistanceWithHitTest(frame, centerX, centerY);
-            Log.d("ARCoreDistance", "Objeto: " + box.clsName + ", Distância: " + String.format("%.2f", distance) + " metros");
-        }
 
         mainHandler.post(() -> {
             overlayView.setResults(results.second);
         });
+
+        return results;
+    }
+
+    private List<Pair<BoundingBox, Float>> getObjectsWithLessThanDistance(Pair<Bitmap, List<BoundingBox>> detectionResult, float distace, Frame frame) {
+        List<BoundingBox> boundingBoxes = detectionResult.second;
+        List<Pair<BoundingBox, Float>> nearObjects = new ArrayList<>();
+
+        for (BoundingBox box : boundingBoxes) {
+            int centerX = (int) box.cx;
+            int centerY = (int) box.cy;
+
+            float calculatedDistance = calculateDistanceWithHitTest(frame, centerX, centerY);
+            if (calculatedDistance <= distace && calculatedDistance != Float.MIN_VALUE) {
+                nearObjects.add(new Pair<>(box, calculatedDistance));
+            }
+        }
+
+        return nearObjects;
     }
 
     private float calculateDistanceWithHitTest(Frame frame, int screenX, int screenY) {
@@ -115,7 +136,28 @@ public class Manager {
 
         } else {
             //Distancia grande, sem risco de colisao
-            return -1.0f;
+            return Float.MIN_VALUE;
         }
+    }
+
+    private float distanceToNearestWall(Frame frame) {
+        float minDistance = Float.MAX_VALUE;
+
+        for (Plane plane : frame.getUpdatedTrackables(Plane.class)) {
+            if (plane.getTrackingState() != TrackingState.TRACKING) continue;
+            if (plane.getType() != Plane.Type.VERTICAL) continue;
+
+            Pose planePose = plane.getCenterPose();
+            Pose cameraPose = frame.getCamera().getPose();
+
+            float dx = planePose.tx() - cameraPose.tx();
+            float dy = planePose.ty() - cameraPose.ty();
+            float dz = planePose.tz() - cameraPose.tz();
+
+            float distance = (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
+            if (distance < minDistance) minDistance = distance;
+        }
+
+        return minDistance < Float.MAX_VALUE ? minDistance : Float.MIN_VALUE;
     }
 }
