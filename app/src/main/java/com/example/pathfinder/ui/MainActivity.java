@@ -19,6 +19,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.example.pathfinder.R;
+import com.example.pathfinder.detection.YoloNano;
 import com.example.pathfinder.detection.YoloSmall;
 import com.example.pathfinder.manager.Manager;
 import com.google.ar.sceneform.ux.ArFragment;
@@ -72,13 +73,9 @@ public class MainActivity extends AppCompatActivity {
         overlayView = findViewById(R.id.overlay);
         setupButtons();
 
-
-        String MODEL_PATH = "yolo11s_float32.tflite";
-        String LABELS_PATH = "labels.txt";
-
-        YoloSmall detector = null;
+        YoloNano detector = null;
         try {
-            detector = new YoloSmall(this, MODEL_PATH, LABELS_PATH);
+            detector = new YoloNano(this);
         } catch (IOException e) {
             Log.e(e.getMessage(), "Failed to load model");
         }
