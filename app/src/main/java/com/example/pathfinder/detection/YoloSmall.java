@@ -2,6 +2,7 @@ package com.example.pathfinder.detection;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.Matrix;
 import android.util.Pair;
 
 import org.tensorflow.lite.DataType;
@@ -54,7 +55,13 @@ public class YoloSmall implements DetectorModel {
     public TensorImage PreProcess(Bitmap ogImg) {
         var inputImageWidth = interpreter.getInputTensor(0).shape()[2];
         var inputImageHeight = interpreter.getInputTensor(0).shape()[1];
-        Bitmap resizedBitmap = Bitmap.createScaledBitmap(ogImg, inputImageWidth, inputImageHeight, false);
+        Matrix matrix = new Matrix();
+        matrix.postRotate(90);
+        Bitmap rotated = Bitmap.createBitmap(ogImg, 0, 0,
+                ogImg.getWidth(), ogImg.getHeight(),
+                matrix, true);
+
+        Bitmap resizedBitmap = Bitmap.createScaledBitmap(rotated, inputImageWidth, inputImageHeight, false);
 
         ImageProcessor imageProcessor = new ImageProcessor.Builder()
 //                .add(new ResizeOp(inputShape.shape()[1], inputShape.shape()[2], ResizeOp.ResizeMethod.NEAREST_NEIGHBOR))
