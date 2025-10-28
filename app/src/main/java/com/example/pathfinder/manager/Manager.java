@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Map;
 
 public class Manager {
-//    private final Detector detector;
     private final DetectorModel detector;
     private final OverlayView overlayView;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());

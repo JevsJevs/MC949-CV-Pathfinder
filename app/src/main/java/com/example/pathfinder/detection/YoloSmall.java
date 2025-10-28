@@ -7,26 +7,21 @@ import android.util.Pair;
 
 import org.tensorflow.lite.DataType;
 import org.tensorflow.lite.Interpreter;
-import org.tensorflow.lite.Tensor;
 import org.tensorflow.lite.support.common.FileUtil;
 import org.tensorflow.lite.support.common.ops.CastOp;
 import org.tensorflow.lite.support.common.ops.NormalizeOp;
 import org.tensorflow.lite.support.image.ImageProcessor;
 import org.tensorflow.lite.support.image.TensorImage;
-import org.tensorflow.lite.support.image.ops.ResizeOp;
 import org.tensorflow.lite.support.tensorbuffer.TensorBuffer;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.MappedByteBuffer;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 public class YoloSmall implements DetectorModel {
     private Interpreter interpreter = null;
@@ -64,7 +59,6 @@ public class YoloSmall implements DetectorModel {
         Bitmap resizedBitmap = Bitmap.createScaledBitmap(rotated, inputImageWidth, inputImageHeight, false);
 
         ImageProcessor imageProcessor = new ImageProcessor.Builder()
-//                .add(new ResizeOp(inputShape.shape()[1], inputShape.shape()[2], ResizeOp.ResizeMethod.NEAREST_NEIGHBOR))
                 .add(new NormalizeOp(0f, 255f))
                 .add(new CastOp(DataType.FLOAT32))
                 .build();

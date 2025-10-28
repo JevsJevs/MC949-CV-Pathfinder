@@ -77,8 +77,8 @@ public class MainActivity extends AppCompatActivity {
         setupButtons();
 
 
-        String MODEL_PATH = "yolo11s_saved_model/yolo11s_float32.tflite";
-        String LABELS_PATH = "yolo11s_saved_model/labels.txt";
+        String MODEL_PATH = "yolo11s_float32.tflite";
+        String LABELS_PATH = "labels.txt";
 
         YoloSmall detector = null;
         try{
