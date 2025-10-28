@@ -2,6 +2,7 @@ package com.example.pathfinder.detection;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.util.Pair;
 
 import org.tensorflow.lite.DataType;
 import org.tensorflow.lite.Interpreter;
@@ -51,17 +52,18 @@ public class YoloSmall implements DetectorModel {
 
     @Override
     public TensorImage PreProcess(Bitmap ogImg) {
-//        Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, inputImageWidth, inputImageHeight, false);
+        var inputImageWidth = interpreter.getInputTensor(0).shape()[2];
+        var inputImageHeight = interpreter.getInputTensor(0).shape()[1];
+        Bitmap resizedBitmap = Bitmap.createScaledBitmap(ogImg, inputImageWidth, inputImageHeight, false);
 
-        var inputShape = this.interpreter.getInputTensor(0);
         ImageProcessor imageProcessor = new ImageProcessor.Builder()
-                .add(new ResizeOp(inputShape.shape()[1], inputShape.shape()[2], ResizeOp.ResizeMethod.NEAREST_NEIGHBOR))
+//                .add(new ResizeOp(inputShape.shape()[1], inputShape.shape()[2], ResizeOp.ResizeMethod.NEAREST_NEIGHBOR))
                 .add(new NormalizeOp(0f, 255f))
                 .add(new CastOp(DataType.FLOAT32))
                 .build();
 
         TensorImage tensorImage = new TensorImage(DataType.FLOAT32);
-//        tensorImage.load(resizedBitmap);
+        tensorImage.load(resizedBitmap);
         return imageProcessor.process(tensorImage);
     }
 
@@ -116,15 +118,13 @@ public class YoloSmall implements DetectorModel {
     }
 
     @Override
-    public Map<Bitmap, List<BoundingBox>> Detect(Bitmap img) {
+    public Pair<Bitmap, List<BoundingBox>> Detect(Bitmap img) {
         TensorImage tensorImage = PreProcess(img);
         TensorBuffer outputBuffer = TensorBuffer.createFixedSize(interpreter.getOutputTensor(0).shape(), DataType.FLOAT32);
 
         interpreter.run(tensorImage.getBuffer(), outputBuffer.getBuffer());
 
-        Map<Bitmap, List<BoundingBox>> map = new HashMap<>();
-        map.put(img, PostProcess(outputBuffer));
-        return map;
+        return new Pair<>(img, PostProcess(outputBuffer));
     }
 
     //Private methods:

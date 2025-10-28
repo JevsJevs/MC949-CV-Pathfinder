@@ -3,6 +3,8 @@ package com.example.pathfinder.detection;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.RectF;
+import android.util.Pair;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -50,23 +52,6 @@ public class Detector {
     private final int[] inputShape;
     private int numChannel = 0 ;
     private int numElements = 0;
-//    public static class DetectionResult {
-//        private final RectF boundingBox;
-//        private final String label;
-//        private final float score;
-//        public final Bitmap mask;
-//
-//        public DetectionResult(RectF boundingBox, String label, float score, Bitmap mask) {
-//            this.boundingBox = boundingBox;
-//            this.label = label;
-//            this.score = score;
-//            this.mask = mask;
-//        }
-//
-//        public RectF getBoundingBox() { return boundingBox; }
-//        public String getLabel() { return label; }
-//        public float getScore() { return score; }
-//    }
 
     public Detector(Context context) throws IOException {
         MappedByteBuffer modelFile = FileUtil.loadMappedFile(context, MODEL_PATH);
@@ -98,10 +83,7 @@ public class Detector {
         return labelList;
     }
 
-    public List<Bitmap> detect(Bitmap bitmap) {
-        int originalWidth = bitmap.getWidth();
-        int originalHeight = bitmap.getHeight();
-
+    public Pair<Bitmap, List<BoundingBox>> detect(Bitmap bitmap) {
         Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, inputImageWidth, inputImageHeight, false);
 
         ImageProcessor imageProcessor = new ImageProcessor.Builder()
@@ -120,41 +102,12 @@ public class Detector {
 
         interpreter.runForMultipleInputsOutputs(new Object[]{procImg.getBuffer()}, outputs);
 
-
         float[] detections = outputBuffer.getFloatArray();
-
-        ByteBuffer buf = outputBuffer.getBuffer();
 
         var res = bestBox(detections);
 
-        int numDetections = outputShape[2];
-        int detectionSize = outputShape[1];
-        int numClasses = labels.size();
-
-
-//        List<TempResult> nmsResults = nonMaxSuppression(preNMSResults);
-
-//        List<DetectionResult> finalResults = new ArrayList<>();
-        List<Bitmap> finalResults = new ArrayList<>();
-
-//        Matrix downscaleMatrix = new Matrix();
-//        float scaleX = (float) originalWidth / inputImageWidth;
-//        float scaleY = (float) originalHeight / inputImageHeight;
-//        downscaleMatrix.postScale(scaleX, scaleY);
-//
-        return finalResults;
+        return new Pair<>(bitmap, res);
     }
-
-//    private List<TempResult> nonMaxSuppression(List<TempResult> detections) {
-//        detections.sort(Comparator.comparingDouble(d -> -d.score));
-//        List<TempResult> finalDetections = new ArrayList<>();
-//        while (!detections.isEmpty()) {
-//            TempResult first = detections.remove(0);
-//            finalDetections.add(first);
-//            detections.removeIf(d -> calculateIoU(first.boundingBox, d.boundingBox) > IOU_THRESHOLD);
-//        }
-//        return finalDetections;
-//    }
 
     private List<BoundingBox> bestBox(float[] array) {
 

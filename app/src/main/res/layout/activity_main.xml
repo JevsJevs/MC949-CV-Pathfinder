@@ -11,11 +11,19 @@
         android:id="@+id/viewFinder"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/footerLayout" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
+    <com.example.pathfinder.ui.OverlayView
+        android:id="@+id/overlay"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toTopOf="@+id/footerLayout"
+        app:layout_constraintEnd_toEndOf="@+id/viewFinder"
+        app:layout_constraintStart_toStartOf="@+id/viewFinder"
+        app:layout_constraintTop_toTopOf="@+id/viewFinder" />
 
     <TextView
         android:id="@+id/permissionDeniedText"
@@ -69,12 +77,12 @@
         <!-- Button 3: Repeat Button -->
         <ImageButton
             android:id="@+id/repeatButton"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:src="@android:drawable/ic_menu_revert"
-            android:contentDescription="@string/repeat_button_text"
             android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/repeat_button_text"
+            android:src="@android:drawable/ic_menu_revert"
             app:tint="@android:color/white" />
 
     </LinearLayout>

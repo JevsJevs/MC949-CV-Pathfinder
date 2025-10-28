@@ -28,6 +28,7 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.example.pathfinder.R;
 import com.example.pathfinder.detection.Detector;
+import com.example.pathfinder.detection.YoloSmall;
 import com.example.pathfinder.manager.Manager;
 import com.google.common.util.concurrent.ListenableFuture;
 
@@ -42,6 +43,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private ExecutorService cameraExecutor;
     private PreviewView viewFinder;
+    private OverlayView overlayView;
 
     private TextView permissionDeniedText;
     private Manager manager;
@@ -76,12 +78,16 @@ public class MainActivity extends AppCompatActivity {
         permissionDeniedText = findViewById(R.id.permissionDeniedText);
         viewFinder = findViewById(R.id.viewFinder);
         viewFinder.setKeepScreenOn(true);
+        overlayView = findViewById(R.id.overlay);
         setupButtons();
 
 
-        Detector detector = null;
+        String MODEL_PATH = "yolo11s_saved_model/yolo11s_float32.tflite";
+        String LABELS_PATH = "yolo11s_saved_model/labels.txt";
+
+        YoloSmall detector = null;
         try{
-            detector = new Detector(this);
+            detector = new YoloSmall(this, MODEL_PATH, LABELS_PATH);
         }
         catch (IOException e){
             Log.e(e.getMessage(), "Failed to load model");
@@ -89,7 +95,7 @@ public class MainActivity extends AppCompatActivity {
 
 
         managerExecutor = Executors.newSingleThreadExecutor();
-        manager = new Manager(detector);
+        manager = new Manager(detector, overlayView);
         cameraExecutor = Executors.newSingleThreadExecutor();
 
         if (allPermissionsGranted()) {
