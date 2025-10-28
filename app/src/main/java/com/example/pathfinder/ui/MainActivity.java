@@ -24,9 +24,11 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.example.pathfinder.R;
+import com.example.pathfinder.detection.YoloSmall;
 import com.example.pathfinder.manager.Manager;
 import com.google.common.util.concurrent.ListenableFuture;
 
+import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -36,9 +38,11 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private ExecutorService cameraExecutor;
     private PreviewView viewFinder;
+    private OverlayView overlayView;
 
     private TextView permissionDeniedText;
     private Manager manager;
+    private ExecutorService managerExecutor;
 
     // Register the permissions callback, which handles the user's response to the
     // system permissions dialog. Save the return value, an instance of
@@ -68,9 +72,25 @@ public class MainActivity extends AppCompatActivity {
 
         permissionDeniedText = findViewById(R.id.permissionDeniedText);
         viewFinder = findViewById(R.id.viewFinder);
+        viewFinder.setKeepScreenOn(true);
+        overlayView = findViewById(R.id.overlay);
         setupButtons();
 
-        manager = new Manager();
+
+        String MODEL_PATH = "yolo11s_float32.tflite";
+        String LABELS_PATH = "labels.txt";
+
+        YoloSmall detector = null;
+        try{
+            detector = new YoloSmall(this, MODEL_PATH, LABELS_PATH);
+        }
+        catch (IOException e){
+            Log.e(e.getMessage(), "Failed to load model");
+        }
+
+
+        managerExecutor = Executors.newSingleThreadExecutor();
+        manager = new Manager(detector, overlayView);
         cameraExecutor = Executors.newSingleThreadExecutor();
 
         if (allPermissionsGranted()) {
