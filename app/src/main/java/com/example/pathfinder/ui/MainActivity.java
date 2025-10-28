@@ -2,9 +2,6 @@ package com.example.pathfinder.ui;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Picture;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -27,12 +24,10 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.example.pathfinder.R;
-import com.example.pathfinder.detection.Detector;
 import com.example.pathfinder.detection.YoloSmall;
 import com.example.pathfinder.manager.Manager;
 import com.google.common.util.concurrent.ListenableFuture;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
