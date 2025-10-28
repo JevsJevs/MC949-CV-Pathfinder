@@ -3,10 +3,12 @@ package com.example.pathfinder.detection;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
+import android.util.Log;
 import android.util.Pair;
 
 import org.tensorflow.lite.DataType;
 import org.tensorflow.lite.Interpreter;
+import org.tensorflow.lite.nnapi.NnApiDelegate;
 import org.tensorflow.lite.support.common.FileUtil;
 import org.tensorflow.lite.support.common.ops.CastOp;
 import org.tensorflow.lite.support.common.ops.NormalizeOp;
@@ -33,7 +35,11 @@ public class YoloSmall implements DetectorModel {
     public YoloSmall(Context context, String modelPath, String labelsPath) throws IOException {
         MappedByteBuffer modelFile = FileUtil.loadMappedFile(context, modelPath);
         Interpreter.Options options = new Interpreter.Options();
-        options.setNumThreads(4);
+
+        NnApiDelegate nnApiDelegate = new NnApiDelegate();
+        options.addDelegate(nnApiDelegate);
+
+        options.setNumThreads(Runtime.getRuntime().availableProcessors());
         this.interpreter = new Interpreter(modelFile, options);
 
         List<String> labelList = new ArrayList<>();
@@ -77,7 +83,7 @@ public class YoloSmall implements DetectorModel {
 
         List<BoundingBox> boundingBoxes = new ArrayList<BoundingBox>();
 
-        for(int j = 0; j < 8400; j++) {
+        for (int j = 0; j < 8400; j++) {
             var maxConf = CONFIDENCE_THRESHOLD; // Menor confiança admitida
             var maxIdx = -1; //Classe com maior confiança inicializada como 'nenhuma'
             int i = 4; //Inicializa i para percorrer as 80 classes
@@ -85,7 +91,7 @@ public class YoloSmall implements DetectorModel {
             var arrayIdx = numElements * i + j; // Indice do array. 8400 * i -> 'linha correta' + j -> 'coluna correta'
 
             while (i < numChannels) { //Numero de canais da saida [1, 84, 8400]
-                if (array[arrayIdx] > maxConf){
+                if (array[arrayIdx] > maxConf) {
                     maxConf = array[arrayIdx];
                     maxIdx = i - 4; // Corrige o offset das colunas das caixas para selecionar o rotulo correto
                 }
@@ -100,10 +106,10 @@ public class YoloSmall implements DetectorModel {
                 var cy = array[j + numElements]; // 1
                 var w = array[j + numElements * 2];
                 var h = array[j + numElements * 3];
-                var x1 = cx - (w/2F);
-                var y1 = cy - (h/2F);
-                var x2 = cx + (w/2F);
-                var y2 = cy + (h/2F);
+                var x1 = cx - (w / 2F);
+                var y1 = cy - (h / 2F);
+                var x2 = cx + (w / 2F);
+                var y2 = cy + (h / 2F);
 
                 //Descarta boxes que vazam das dimensoes da imagem
                 if (x1 < 0F || x1 > 1F) continue;
@@ -112,7 +118,7 @@ public class YoloSmall implements DetectorModel {
                 if (y2 < 0F || y2 > 1F) continue;
 
 
-                boundingBoxes.add( new BoundingBox(x1, y1, x2, y2, cx, cy, h, w, maxConf, maxIdx, clsName) );
+                boundingBoxes.add(new BoundingBox(x1, y1, x2, y2, cx, cy, h, w, maxConf, maxIdx, clsName));
             }
         }
         return applyNMS(boundingBoxes);
@@ -122,8 +128,12 @@ public class YoloSmall implements DetectorModel {
     public Pair<Bitmap, List<BoundingBox>> Detect(Bitmap img) {
         TensorImage tensorImage = PreProcess(img);
         TensorBuffer outputBuffer = TensorBuffer.createFixedSize(interpreter.getOutputTensor(0).shape(), DataType.FLOAT32);
+        long startTime = System.nanoTime();
 
         interpreter.run(tensorImage.getBuffer(), outputBuffer.getBuffer());
+        long endTime = System.nanoTime();
+        Log.d("Performance", "Tempo de execução YOLO: " + (endTime - startTime) / 1_000_000.0 + " ms");
+
 
         return new Pair<>(img, PostProcess(outputBuffer));
     }
