@@ -31,7 +31,6 @@ import java.util.concurrent.Executors;
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
-    private PreviewView viewFinder;
     private OverlayView overlayView;
 
     private TextView permissionDeniedText;

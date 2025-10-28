@@ -7,7 +7,6 @@ import android.os.Looper;
 import android.util.Log;
 import android.util.Pair;
 
-import com.example.pathfinder.R;
 import com.example.pathfinder.detection.BoundingBox;
 import com.example.pathfinder.detection.DetectorModel;
 import com.example.pathfinder.ui.OverlayView;
@@ -65,7 +64,7 @@ public class Manager {
             long afterConversion = System.nanoTime();
             Log.d("Performance", "Tempo de conversão: " + (afterConversion - startTime) / 1_000_000.0 + " ms");
             startTime = System.nanoTime();
-            process(bitmap);
+            process(bitmap, frame);
             long endTime = System.nanoTime();
             Log.d("Performance", "Tempo de processamento YOLO: " + (endTime - startTime) / 1_000_000.0 + " ms");
             isProcessing = false;
@@ -80,12 +79,43 @@ public class Manager {
         }
     }
 
-    public void process(Bitmap image) {
+    public void process(Bitmap image, Frame frame) {
         Pair<Bitmap, List<BoundingBox>> results = detector.Detect(image);
 
-        // Post the results to the UI thread to update the overlay
+        List<BoundingBox> boundingBoxes = results.second;
+
+        for (BoundingBox box : boundingBoxes) {
+            int centerX = (int) box.cx;
+            int centerY = (int)box.cy;
+
+            float distance = calculateDistanceWithHitTest(frame, centerX, centerY);
+            Log.d("ARCoreDistance", "Objeto: " + box.clsName + ", Distância: " + String.format("%.2f", distance) + " metros");
+        }
+
         mainHandler.post(() -> {
             overlayView.setResults(results.second);
         });
+    }
+
+    private float calculateDistanceWithHitTest(Frame frame, int screenX, int screenY) {
+        List<com.google.ar.core.HitResult> hitResults = frame.hitTest(screenX, screenY);
+
+        if (!hitResults.isEmpty()) {
+            com.google.ar.core.HitResult hit = hitResults.get(0);
+
+            Pose hitPose = hit.getHitPose();
+
+            Pose cameraPose = frame.getCamera().getPose();
+
+            float dx = hitPose.tx() - cameraPose.tx();
+            float dy = hitPose.ty() - cameraPose.ty();
+            float dz = hitPose.tz() - cameraPose.tz();
+
+            return (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+        } else {
+            //Distancia grande, sem risco de colisao
+            return -1.0f;
+        }
     }
 }
