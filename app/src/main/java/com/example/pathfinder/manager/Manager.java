@@ -28,10 +28,6 @@ public class Manager {
 
     private boolean isProcessing = false;
 
-    private long lastProcessedTime = 0;
-
-    private static final long PROCESS_INTERVAL_MS = 300;
-
     float EPSILON = 0.05f; // distância mínima para considerar válida
 
     public Manager(DetectorModel detector, OverlayView overlayView, ArFragment arFragment) {
@@ -45,19 +41,15 @@ public class Manager {
     }
 
     private void handleFrameUpdate(FrameTime frameTime) {
-        long now = System.currentTimeMillis();
+        if (isProcessing) return;
 
-        if (isProcessing || (now - lastProcessedTime < PROCESS_INTERVAL_MS)) return;
-
-        lastProcessedTime = now;
+        isProcessing = true;
 
         Frame frame = arFragment.getArSceneView().getArFrame();
-
         if (frame == null) return;
 
         try {
             Image image = frame.acquireCameraImage();
-            isProcessing = true;
 
             long startTime = System.nanoTime();
             Bitmap bitmap = ImageUtils.convertImageToBitmap(image); //convert frame to bitmap
@@ -85,6 +77,7 @@ public class Manager {
             isProcessing = false;
         } catch (Exception e) {
             Log.e("ARCore", "Erro ao capturar frame: " + e.getMessage());
+            isProcessing = false;
         }
     }
 
