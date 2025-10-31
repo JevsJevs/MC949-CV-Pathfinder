@@ -80,8 +80,12 @@ public class MainActivity extends AppCompatActivity {
             Log.e(e.getMessage(), "Failed to load model");
         }
 
+        // Obter dimensões da tela para análise de risco
+        int screenWidth = getResources().getDisplayMetrics().widthPixels;
+        int screenHeight = getResources().getDisplayMetrics().heightPixels;
+
         managerExecutor = Executors.newSingleThreadExecutor();
-        manager = new Manager(detector, overlayView, arFragment);
+        manager = new Manager(detector, overlayView, arFragment, screenWidth, screenHeight);
 
         if (allPermissionsGranted()) {
             manager.startArCore();

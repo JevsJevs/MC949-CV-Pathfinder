@@ -13,3 +13,8 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Testes da análise de risco
+app/src/test/java/com/example/pathfinder/risk/
+app/src/androidTest/java/com/example/pathfinder/risk/
+app/src/main/java/com/example/pathfinder/risk/RiskAnalyzerValidator.java
