@@ -192,8 +192,8 @@ public class RiskAnalyzer {
 
     // Determina a direção do objeto em relação ao usuário
     private String determineDirection(float centerX) {
-        float leftThird = screenWidth / 3.0f;
-        float rightThird = 2 * screenWidth / 3.0f;
+        float leftThird = 0.3f;
+        float rightThird = 0.6f;
 
         if (centerX < leftThird) {
             return "esquerda";
