@@ -9,6 +9,8 @@ import android.util.Pair;
 
 import com.example.pathfinder.detection.BoundingBox;
 import com.example.pathfinder.detection.DetectorModel;
+import com.example.pathfinder.risk.RiskAnalyzer;
+import com.example.pathfinder.risk.RiskAssessment;
 import com.example.pathfinder.slam.ARCoreDistanceCalculation;
 import com.example.pathfinder.ui.OverlayView;
 import com.example.pathfinder.utils.ImageUtils;
@@ -21,6 +23,7 @@ import java.util.List;
 public class Manager {
     private final DetectorModel detector;
     private final OverlayView overlayView;
+    private final RiskAnalyzer riskAnalyzer;
 
     private final ArFragment arFragment;
 
@@ -30,10 +33,12 @@ public class Manager {
 
     float EPSILON = 0.05f; // distância mínima para considerar válida
 
-    public Manager(DetectorModel detector, OverlayView overlayView, ArFragment arFragment) {
+    public Manager(DetectorModel detector, OverlayView overlayView, ArFragment arFragment, int screenWidth, int screenHeight) {
         this.detector = detector;
         this.overlayView = overlayView;
         this.arFragment = arFragment;
+        this.riskAnalyzer = new RiskAnalyzer(screenWidth, screenHeight);
+
     }
 
     public void startArCore() {
@@ -63,15 +68,22 @@ public class Manager {
             long endTime = System.nanoTime();
             Log.d("Performance", "Tempo de processamento YOLO: " + (endTime - startTime) / 1_000_000.0 + " ms");
 
-            List<Pair<BoundingBox, Float>> nearObjects = ARCoreDistanceCalculation.getObjectsWithLessThanDistance(detectionResult, 1f, frame); //near objects, less than threshold
+            List<Pair<BoundingBox, Float>> nearObjects = ARCoreDistanceCalculation.getObjectsWithLessThanDistance(detectionResult, 3f, frame); //near objects, less than threshold
 
             for (Pair<BoundingBox, Float> obj : nearObjects) {
                 Log.d("ARCoreDistance", "Objeto: " + obj.first.clsName + ", Distância: " + String.format("%.2f", obj.second) + " metros");
             }
 
             float distanceToNearestWall = ARCoreDistanceCalculation.distanceToNearestWall(frame);
-            if (distanceToNearestWall > EPSILON && distanceToNearestWall < 1f) {
+            if (distanceToNearestWall > EPSILON && distanceToNearestWall < 3f) {
                 Log.d("ARCoreDistance", "Parede, Distancia: " + distanceToNearestWall + " metros");
+            }
+
+            RiskAssessment riskAssessment = riskAnalyzer.analyzeRisk(nearObjects, distanceToNearestWall);
+            Log.d("RiskAnalysis", riskAssessment.toString());
+
+            if (riskAssessment.shouldAlert()) {
+                Log.i("RiskAnalysis", "ALERTA: " + riskAssessment.getFullMessage());
             }
 
             isProcessing = false;
