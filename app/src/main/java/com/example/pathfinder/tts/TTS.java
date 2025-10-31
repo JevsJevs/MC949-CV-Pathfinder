@@ -18,6 +18,8 @@ public class TTS implements TTSInterface, TextToSpeech.OnInitListener {
     public static final int TEXT_TOO_LONG = 1;
     public static final int TEXT_EMPTY = 2;
 
+    private String lastAlert = "";
+
     private final TextToSpeech tts;
     private final MutableLiveData<Boolean> isInitialized = new MutableLiveData<>(false);
 
@@ -54,10 +56,19 @@ public class TTS implements TTSInterface, TextToSpeech.OnInitListener {
         if (Boolean.FALSE.equals(isInitialized.getValue()))
             return NOT_INITIALIZED;
 
+        lastAlert = text;
         int result = tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, null);
         if (result == TextToSpeech.ERROR)
             return SPEAK_FAILED;
         return SUCCESS;
+    }
+
+    public int repeatLastAlert() {
+        return speak(lastAlert);
+    }
+
+    public void stop() {
+        tts.stop();
     }
 
     public LiveData<Boolean> isInitialized() {

@@ -72,7 +72,8 @@ public class MainActivity extends AppCompatActivity {
         arFragment = (ArFragment) getSupportFragmentManager().findFragmentById(R.id.arFragment);
 
         overlayView = findViewById(R.id.overlay);
-        setupButtons();
+
+        ttsStatus = findViewById(R.id.ttsStatus);
 
         YoloNano detector = null;
         try {
@@ -88,7 +89,8 @@ public class MainActivity extends AppCompatActivity {
         managerExecutor = Executors.newSingleThreadExecutor();
         manager = new Manager(this, detector, overlayView, arFragment, screenWidth, screenHeight);
 
-        ttsStatus = findViewById(R.id.ttsStatus);
+        setupButtons();
+
         manager.getTtsInitialized().observe(this, isInitialized -> {
             if (isInitialized) {
                 ttsStatus.setVisibility(View.GONE);
@@ -111,19 +113,26 @@ public class MainActivity extends AppCompatActivity {
         ImageButton soundButton = findViewById(R.id.soundButton);
         ImageButton repeatButton = findViewById(R.id.repeatButton);
 
+        // Change the button images based on the manager's state
+        manager.getShouldAlert().observe(this, shouldAlert -> {
+            if (shouldAlert) {
+                soundButton.setImageResource(android.R.drawable.ic_lock_silent_mode_off);
+            } else {
+                soundButton.setImageResource(android.R.drawable.ic_lock_silent_mode);
+            }
+        });
+
         // Set click listeners
         onOffButton.setOnClickListener(v -> {
-            Toast.makeText(this, "On/Off button clicked", Toast.LENGTH_SHORT).show();
-            // Action for this button will go here later
+            manager.toggleProcessing();
         });
 
         soundButton.setOnClickListener(v -> {
-            Toast.makeText(this, "Sound button clicked", Toast.LENGTH_SHORT).show();
+            manager.toggleTTS();
         });
 
         repeatButton.setOnClickListener(v -> {
-            Toast.makeText(this, "Repeat button clicked", Toast.LENGTH_SHORT).show();
-            // Action for this button will go here later
+            manager.repeatLastAlert();
         });
     }
 

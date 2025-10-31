@@ -9,6 +9,7 @@ import android.util.Log;
 import android.util.Pair;
 
 import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
 
 import com.example.pathfinder.detection.BoundingBox;
 import com.example.pathfinder.detection.DetectorModel;
@@ -36,6 +37,9 @@ public class Manager {
 
     private boolean isProcessing = false;
 
+    private boolean shouldProcess = false;
+    private final MutableLiveData<Boolean> shouldAlert = new MutableLiveData<>(true);
+
     float EPSILON = 0.05f; // distância mínima para considerar válida
 
     public Manager(Context context, DetectorModel detector, OverlayView overlayView, ArFragment arFragment, int screenWidth, int screenHeight) {
@@ -51,7 +55,7 @@ public class Manager {
     }
 
     private void handleFrameUpdate(FrameTime frameTime) {
-        if (isProcessing) return;
+        if (!shouldProcess || isProcessing) return;
 
         isProcessing = true;
 
@@ -89,7 +93,9 @@ public class Manager {
 
             if (riskAssessment.shouldAlert()) {
                 Log.i("RiskAnalysis", "ALERTA: " + riskAssessment.getFullMessage());
-                tts.speak(riskAssessment.getMessage());
+                if (Boolean.TRUE.equals(shouldAlert.getValue())) {
+                    tts.speak(riskAssessment.getMessage());
+                }
             }
 
             isProcessing = false;
@@ -111,6 +117,32 @@ public class Manager {
 
     public LiveData<Boolean> getTtsInitialized() {
         return tts.isInitialized();
+    }
+
+    public LiveData<Boolean> getShouldAlert() {
+        return shouldAlert;
+    }
+
+    public void toggleProcessing() {
+        shouldProcess = !shouldProcess;
+        // Clear overlay when not processing frames
+        if (!shouldProcess) {
+            mainHandler.post(() -> overlayView.setResults(null));
+        }
+    }
+
+    public void toggleTTS() {
+        shouldAlert.setValue(!Boolean.TRUE.equals(shouldAlert.getValue()));
+        // Clear TTS queue
+        if (!Boolean.TRUE.equals(shouldAlert.getValue())) {
+            tts.stop();
+        }
+    }
+
+    public void repeatLastAlert() {
+        if (Boolean.TRUE.equals(shouldAlert.getValue())) {
+            tts.repeatLastAlert();
+        }
     }
 
     public void shutdown() {
