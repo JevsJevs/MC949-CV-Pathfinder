@@ -77,7 +77,13 @@ public class Manager {
             long endTime = System.nanoTime();
             Log.d("Performance", "Tempo de processamento YOLO: " + (endTime - startTime) / 1_000_000.0 + " ms");
 
-            List<Pair<BoundingBox, Float>> nearObjects = ARCoreDistanceCalculation.getObjectsWithLessThanDistance(detectionResult, 3f, frame); //near objects, less than threshold
+            // Draw bounding boxes on the bitmap
+            List<Pair<BoundingBox, Float>> objects = ARCoreDistanceCalculation.getObjectDistances(detectionResult, frame);
+            mainHandler.post(() -> {
+                overlayView.setResults(objects);
+            });
+
+            List<Pair<BoundingBox, Float>> nearObjects = ARCoreDistanceCalculation.getObjectsWithLessThanDistance(objects, 3f); //near objects, less than threshold
 
             for (Pair<BoundingBox, Float> obj : nearObjects) {
                 Log.d("ARCoreDistance", "Objeto: " + obj.first.clsName + ", Distância: " + String.format("%.2f", obj.second) + " metros");
@@ -106,13 +112,7 @@ public class Manager {
     }
 
     public Pair<Bitmap, List<BoundingBox>> process(Bitmap image) {
-        Pair<Bitmap, List<BoundingBox>> results = detector.Detect(image);
-
-        mainHandler.post(() -> {
-            overlayView.setResults(results.second);
-        });
-
-        return results;
+        return detector.Detect(image);
     }
 
     public LiveData<Boolean> getTtsInitialized() {
