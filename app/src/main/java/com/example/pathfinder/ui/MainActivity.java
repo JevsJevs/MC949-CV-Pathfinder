@@ -33,6 +33,8 @@ public class MainActivity extends AppCompatActivity {
     private OverlayView overlayView;
     private ExecutorService cameraExecutor;
     private TextView ttsStatus;
+    private TextView fpsBox;
+    private TextView latencyBox;
 
     private TextView permissionDeniedText;
     private Manager manager;
@@ -74,6 +76,9 @@ public class MainActivity extends AppCompatActivity {
         overlayView = findViewById(R.id.overlay);
 
         ttsStatus = findViewById(R.id.ttsStatus);
+        fpsBox = findViewById(R.id.metricsFPSBox);
+        latencyBox = findViewById(R.id.metricsLatencyBox);
+
 
         YoloNano detector = null;
         try {
@@ -99,6 +104,24 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        manager.getShowMetricsOnScreen().observe(this, showMetrics -> {
+            if (showMetrics) {
+                fpsBox.setVisibility(View.VISIBLE);
+                latencyBox.setVisibility(View.VISIBLE);
+            } else {
+                fpsBox.setVisibility(View.GONE);
+                latencyBox.setVisibility(View.GONE);
+            }
+        });
+
+        manager.getFPS().observe(this, fps -> {
+            fpsBox.setText(String.format("FPS: %.2f", fps));
+        });
+
+        manager.getLatency().observe(this, latency -> {
+            latencyBox.setText(String.format("Latência: %.2fms", latency));
+        });
+
         if (allPermissionsGranted()) {
             manager.startArCore();
         } else {
@@ -112,6 +135,7 @@ public class MainActivity extends AppCompatActivity {
         ImageButton onOffButton = findViewById(R.id.onOffButton);
         ImageButton soundButton = findViewById(R.id.soundButton);
         ImageButton repeatButton = findViewById(R.id.repeatButton);
+        ImageButton metricsButton = findViewById(R.id.metricsButton);
 
         // Change the button images based on the manager's state
         manager.getShouldAlert().observe(this, shouldAlert -> {
@@ -133,6 +157,10 @@ public class MainActivity extends AppCompatActivity {
 
         repeatButton.setOnClickListener(v -> {
             manager.repeatLastAlert();
+        });
+
+        metricsButton.setOnClickListener(v -> {
+            manager.toggleMetricsOnScreen();
         });
     }
 

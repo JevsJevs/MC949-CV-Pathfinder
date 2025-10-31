@@ -39,8 +39,15 @@ public class Manager {
 
     private boolean shouldProcess = false;
     private final MutableLiveData<Boolean> shouldAlert = new MutableLiveData<>(true);
+    private final MutableLiveData<Boolean> showMetricsOnScreen = new MutableLiveData<>(false);
+    private final MutableLiveData<Float> FPS = new MutableLiveData<>(0f);
+    private final MutableLiveData<Float> latency = new MutableLiveData<>(0f);
 
     float EPSILON = 0.05f; // distância mínima para considerar válida
+
+    // Metrics
+    private int framesProcessed = 0;
+    private long lastFpsTimestamp = 0;
 
     public Manager(Context context, DetectorModel detector, OverlayView overlayView, ArFragment arFragment, int screenWidth, int screenHeight) {
         this.detector = detector;
@@ -58,9 +65,13 @@ public class Manager {
         if (!shouldProcess || isProcessing) return;
 
         isProcessing = true;
+        long e2e_latency_start = System.nanoTime();
 
         Frame frame = arFragment.getArSceneView().getArFrame();
-        if (frame == null) return;
+        if (frame == null) {
+            isProcessing = false;
+            return;
+        }
 
         try {
             Image image = frame.acquireCameraImage();
@@ -104,6 +115,30 @@ public class Manager {
                 }
             }
 
+            // --- Metrics Calculation ---
+            // E2E latency
+            long e2e_latency_end = System.nanoTime();
+            double latency = (e2e_latency_end - e2e_latency_start) / 1_000_000.0;
+            this.latency.postValue((float) latency);
+            Log.d("Performance", "E2E Latency: " + String.format("%.2f", latency) + " ms");
+
+            // FPS Calculation
+            framesProcessed++;
+            long now = System.nanoTime();
+            if (lastFpsTimestamp == 0) { // First frame
+                lastFpsTimestamp = now;
+            }
+            long elapsedNanos = now - lastFpsTimestamp;
+
+            if (elapsedNanos > 1_000_000_000) { // More than 1 second
+                double fps = framesProcessed / (elapsedNanos / 1_000_000_000.0);
+                this.FPS.postValue((float) fps);
+                Log.d("Performance", "FPS: " + String.format("%.2f", fps));
+                framesProcessed = 0;
+                lastFpsTimestamp = now;
+            }
+            // --- End FPS Calculation ---
+
             isProcessing = false;
         } catch (Exception e) {
             Log.e("ARCore", "Erro ao capturar frame: " + e.getMessage());
@@ -123,6 +158,18 @@ public class Manager {
         return shouldAlert;
     }
 
+    public LiveData<Boolean> getShowMetricsOnScreen() {
+        return showMetricsOnScreen;
+    }
+
+    public LiveData<Float> getFPS() {
+        return FPS;
+    }
+
+    public LiveData<Float> getLatency() {
+        return latency;
+    }
+
     public void toggleProcessing() {
         shouldProcess = !shouldProcess;
         // Clear overlay when not processing frames
@@ -137,6 +184,10 @@ public class Manager {
         if (!Boolean.TRUE.equals(shouldAlert.getValue())) {
             tts.stop();
         }
+    }
+
+    public void toggleMetricsOnScreen() {
+        showMetricsOnScreen.setValue(!Boolean.TRUE.equals(showMetricsOnScreen.getValue()));
     }
 
     public void repeatLastAlert() {
