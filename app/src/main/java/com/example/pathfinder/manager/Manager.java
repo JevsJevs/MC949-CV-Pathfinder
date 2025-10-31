@@ -5,9 +5,11 @@ import android.graphics.Bitmap;
 import android.media.Image;
 import android.os.Handler;
 import android.os.Looper;
+import android.se.omapi.Session;
 import android.util.Log;
 import android.util.Pair;
 
+import androidx.camera.core.impl.Config;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
@@ -20,6 +22,7 @@ import com.example.pathfinder.tts.TTS;
 import com.example.pathfinder.ui.OverlayView;
 import com.example.pathfinder.utils.ImageUtils;
 import com.google.ar.core.Frame;
+import com.google.ar.core.TrackingFailureReason;
 import com.google.ar.sceneform.FrameTime;
 import com.google.ar.sceneform.ux.ArFragment;
 
@@ -44,6 +47,8 @@ public class Manager {
     private final MutableLiveData<Float> latency = new MutableLiveData<>(0f);
 
     float EPSILON = 0.05f; // distância mínima para considerar válida
+
+    private int arErrorMessageCooldown = 0;
 
     // Metrics
     private int framesProcessed = 0;
@@ -88,6 +93,24 @@ public class Manager {
             long endTime = System.nanoTime();
             Log.d("Performance", "Tempo de processamento YOLO: " + (endTime - startTime) / 1_000_000.0 + " ms");
 
+
+            // Check ARCore state
+            TrackingFailureReason arCoreState = ARCoreDistanceCalculation.getARCoreState(frame);
+            if (arCoreState != null) {
+                Log.e("ARCore", "ARCore state: " + arCoreState.toString());
+                if (arErrorMessageCooldown == 0) {
+                    if (arCoreState == TrackingFailureReason.INSUFFICIENT_FEATURES) {
+                        tts.speak("Não foi possível mapear esta área");
+                    }
+                    else if (arCoreState == TrackingFailureReason.EXCESSIVE_MOTION) {
+                        tts.speak("Movimento excessivo. Por favor, mova o celular mais lentamente");
+                    }
+                    else if (arCoreState == TrackingFailureReason.INSUFFICIENT_LIGHT) {
+                        tts.speak("Luz insuficiente. Por favor, ligue a luz do celular");
+                    }
+                    arErrorMessageCooldown = 100; // o certo seria por segundos, mas aqui é MVP
+                }
+            }
             // Draw bounding boxes on the bitmap
             List<Pair<BoundingBox, Float>> objects = ARCoreDistanceCalculation.getObjectDistances(detectionResult, frame);
             mainHandler.post(() -> {
@@ -143,6 +166,10 @@ public class Manager {
         } catch (Exception e) {
             Log.e("ARCore", "Erro ao capturar frame: " + e.getMessage());
             isProcessing = false;
+        }
+        finally {
+            if (arErrorMessageCooldown > 0)
+                arErrorMessageCooldown--;
         }
     }
 

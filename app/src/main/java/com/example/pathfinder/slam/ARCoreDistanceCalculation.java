@@ -4,9 +4,11 @@ import android.graphics.Bitmap;
 import android.util.Pair;
 
 import com.example.pathfinder.detection.BoundingBox;
+import com.google.ar.core.Camera;
 import com.google.ar.core.Frame;
 import com.google.ar.core.Plane;
 import com.google.ar.core.Pose;
+import com.google.ar.core.TrackingFailureReason;
 import com.google.ar.core.TrackingState;
 
 import java.util.ArrayList;
@@ -14,6 +16,20 @@ import java.util.List;
 
 public class ARCoreDistanceCalculation {
 
+
+    public static TrackingFailureReason getARCoreState(Frame frame) {
+        if (frame != null) {
+            Camera camera = frame.getCamera();
+            TrackingState trackingState = camera.getTrackingState();
+            if (trackingState == TrackingState.TRACKING) {
+                return null;
+            }
+            else {
+                return camera.getTrackingFailureReason();
+            }
+        }
+        return TrackingFailureReason.CAMERA_UNAVAILABLE;
+    }
     public static List<Pair<BoundingBox, Float>> getObjectDistances(Pair<Bitmap, List<BoundingBox>> detectionResult, Frame frame) {
         List<BoundingBox> boundingBoxes = detectionResult.second;
         List<Pair<BoundingBox, Float>> distances = new ArrayList<>();
