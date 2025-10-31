@@ -16,14 +16,7 @@ public enum RiskLevel {
         this.description = description;
     }
 
-/*************  ✨ Windsurf Command ⭐  *************/
-    /**
-     * Returns the priority of the risk level, with higher values indicating a
-     * greater risk.
-     * @return the priority of the risk level
-     */
-
-/*******  13162c2e-46f9-4e5e-a1bf-65a583549af2  *******/    public int getPriority() {
+public int getPriority() {
         return priority;
     }
 
