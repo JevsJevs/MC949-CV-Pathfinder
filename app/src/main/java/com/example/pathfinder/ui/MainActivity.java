@@ -20,7 +20,6 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.example.pathfinder.R;
 import com.example.pathfinder.detection.YoloNano;
-import com.example.pathfinder.detection.YoloSmall;
 import com.example.pathfinder.manager.Manager;
 import com.google.ar.sceneform.ux.ArFragment;
 
@@ -120,7 +119,6 @@ public class MainActivity extends AppCompatActivity {
 
         soundButton.setOnClickListener(v -> {
             Toast.makeText(this, "Sound button clicked", Toast.LENGTH_SHORT).show();
-            manager.testSpeak();  // Temporary method for testing, remove later
         });
 
         repeatButton.setOnClickListener(v -> {

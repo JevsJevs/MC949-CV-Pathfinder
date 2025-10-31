@@ -1,18 +1,21 @@
 package com.example.pathfinder.manager;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.media.Image;
 import android.os.Handler;
 import android.os.Looper;
-import android.content.Context;
 import android.util.Log;
 import android.util.Pair;
+
+import androidx.lifecycle.LiveData;
 
 import com.example.pathfinder.detection.BoundingBox;
 import com.example.pathfinder.detection.DetectorModel;
 import com.example.pathfinder.risk.RiskAnalyzer;
 import com.example.pathfinder.risk.RiskAssessment;
 import com.example.pathfinder.slam.ARCoreDistanceCalculation;
+import com.example.pathfinder.tts.TTS;
 import com.example.pathfinder.ui.OverlayView;
 import com.example.pathfinder.utils.ImageUtils;
 import com.google.ar.core.Frame;
@@ -20,10 +23,6 @@ import com.google.ar.sceneform.FrameTime;
 import com.google.ar.sceneform.ux.ArFragment;
 
 import java.util.List;
-import androidx.camera.core.ImageProxy;
-import androidx.lifecycle.LiveData;
-
-import com.example.pathfinder.tts.TTS;
 
 public class Manager {
     private final DetectorModel detector;
@@ -90,6 +89,7 @@ public class Manager {
 
             if (riskAssessment.shouldAlert()) {
                 Log.i("RiskAnalysis", "ALERTA: " + riskAssessment.getFullMessage());
+                tts.speak(riskAssessment.getMessage());
             }
 
             isProcessing = false;
@@ -111,12 +111,6 @@ public class Manager {
 
     public LiveData<Boolean> getTtsInitialized() {
         return tts.isInitialized();
-    }
-
-    public void testSpeak() {
-        int result = tts.speak("Falando");
-        if (result != TTS.SUCCESS)
-            Log.e("Manager", "Falha ao falar: " + result);
     }
 
     public void shutdown() {
