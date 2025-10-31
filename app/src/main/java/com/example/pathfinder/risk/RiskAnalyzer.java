@@ -67,6 +67,11 @@ public class RiskAnalyzer {
     // Analisa os objetos detectados e retorna a avaliação de risco
     public RiskAssessment analyzeRisk(List<Pair<BoundingBox, Float>> detectedObjectsWithDistance,
                                       float nearestWallDistance) {
+        // Verifica parede
+        if (nearestWallDistance > Float.MIN_VALUE && nearestWallDistance < DISTANCE_CRITICAL) {
+            return createWallWarning(nearestWallDistance);
+        }
+
         // Converter para DetectedObject
         List<DetectedObject> objects = new ArrayList<>();
         for (Pair<BoundingBox, Float> pair : detectedObjectsWithDistance) {
@@ -75,11 +80,7 @@ public class RiskAnalyzer {
 
         Log.d(TAG, String.format("Analisando %d objetos detectados", objects.size()));
 
-        // Se não há objetos, verificar parede
         if (objects.isEmpty()) {
-            if (nearestWallDistance > 0 && nearestWallDistance < DISTANCE_CRITICAL) {
-                return createWallWarning(nearestWallDistance);
-            }
             return new RiskAssessment(null, RiskLevel.SAFE,
                 "Siga em frente", "frente", false);
         }

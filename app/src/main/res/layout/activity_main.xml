@@ -41,17 +41,67 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         tools:visibility="visible" />
+
+    <TextView
+        android:id="@+id/ttsStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#01567E"
+        android:gravity="center"
+        android:padding="8dp"
+        android:text="@string/tts_initializing"
+        android:textColor="@android:color/white"
+        android:textSize="16sp"
+        android:visibility="visible"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/metricsFPSBox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:background="#01567E"
+        android:gravity="start"
+        android:padding="8dp"
+        android:text="@string/metrics_fps_default"
+        android:textColor="@android:color/white"
+        android:textSize="16sp"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/metricsLatencyBox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="40dp"
+        android:background="#01567E"
+        android:gravity="start"
+        android:padding="8dp"
+        android:text="@string/metrics_latency_default"
+        android:textColor="@android:color/white"
+        android:textSize="16sp"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
     <!-- Footer Container -->
     <LinearLayout
         android:id="@+id/footerLayout"
         android:layout_width="0dp"
         android:layout_height="80dp"
-        android:orientation="horizontal"
         android:background="#80000000"
         android:gravity="center_vertical"
+        android:orientation="horizontal"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
 
         <!-- Button 1: On/Off -->
         <ImageButton
@@ -59,9 +109,9 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:src="@android:drawable/ic_lock_power_off"
-            android:contentDescription="@string/on_off_button_text"
             android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/on_off_button_text"
+            android:src="@android:drawable/ic_lock_power_off"
             app:tint="@android:color/white" />
 
         <!-- Button 2: Sound On/Off -->
@@ -70,9 +120,9 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:src="@android:drawable/ic_lock_silent_mode_off"
-            android:contentDescription="@string/sound_button_text"
             android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/sound_button_text"
+            android:src="@android:drawable/ic_lock_silent_mode_off"
             app:tint="@android:color/white" />
 
         <!-- Button 3: Repeat Button -->
@@ -84,6 +134,17 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/repeat_button_text"
             android:src="@android:drawable/ic_menu_revert"
+            app:tint="@android:color/white" />
+
+        <!-- Button 4: Metrics Button -->
+        <ImageButton
+            android:id="@+id/metricsButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/metrics_button_text"
+            android:src="@android:drawable/ic_menu_info_details"
             app:tint="@android:color/white" />
 
     </LinearLayout>

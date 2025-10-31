@@ -14,17 +14,34 @@ import java.util.List;
 
 public class ARCoreDistanceCalculation {
 
-    public static List<Pair<BoundingBox, Float>> getObjectsWithLessThanDistance(Pair<Bitmap, List<BoundingBox>> detectionResult, float distace, Frame frame) {
+    public static List<Pair<BoundingBox, Float>> getObjectDistances(Pair<Bitmap, List<BoundingBox>> detectionResult, Frame frame) {
         List<BoundingBox> boundingBoxes = detectionResult.second;
-        List<Pair<BoundingBox, Float>> nearObjects = new ArrayList<>();
+        List<Pair<BoundingBox, Float>> distances = new ArrayList<>();
 
         for (BoundingBox box : boundingBoxes) {
             int centerX = (int) box.cx;
             int centerY = (int) box.cy;
 
             float calculatedDistance = calculateDistanceWithHitTest(frame, centerX, centerY);
-            if (calculatedDistance <= distace && calculatedDistance != Float.MIN_VALUE) {
-                nearObjects.add(new Pair<>(box, calculatedDistance));
+            distances.add(new Pair<>(box, calculatedDistance));
+        }
+
+        return distances;
+    }
+
+    public static List<Pair<BoundingBox, Float>> getObjectsWithLessThanDistance(Pair<Bitmap, List<BoundingBox>> detectionResult, float threshold, Frame frame) {
+        List<Pair<BoundingBox, Float>> objectDistances = getObjectDistances(detectionResult, frame);
+        return getObjectsWithLessThanDistance(objectDistances, threshold);
+    }
+
+    public static List<Pair<BoundingBox, Float>> getObjectsWithLessThanDistance(List<Pair<BoundingBox, Float>> objectDistances, float threshold) {
+        List<Pair<BoundingBox, Float>> nearObjects = new ArrayList<>();
+
+        for (Pair<BoundingBox, Float> pair : objectDistances) {
+            float calculatedDistance = pair.second;
+
+            if (calculatedDistance <= threshold && calculatedDistance != Float.MIN_VALUE) {
+                nearObjects.add(pair);
             }
         }
 

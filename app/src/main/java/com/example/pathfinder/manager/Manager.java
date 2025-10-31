@@ -1,5 +1,6 @@
 package com.example.pathfinder.manager;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.media.Image;
 import android.os.Handler;
@@ -7,11 +8,15 @@ import android.os.Looper;
 import android.util.Log;
 import android.util.Pair;
 
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
+
 import com.example.pathfinder.detection.BoundingBox;
 import com.example.pathfinder.detection.DetectorModel;
 import com.example.pathfinder.risk.RiskAnalyzer;
 import com.example.pathfinder.risk.RiskAssessment;
 import com.example.pathfinder.slam.ARCoreDistanceCalculation;
+import com.example.pathfinder.tts.TTS;
 import com.example.pathfinder.ui.OverlayView;
 import com.example.pathfinder.utils.ImageUtils;
 import com.google.ar.core.Frame;
@@ -24,6 +29,7 @@ public class Manager {
     private final DetectorModel detector;
     private final OverlayView overlayView;
     private final RiskAnalyzer riskAnalyzer;
+    private final TTS tts;
 
     private final ArFragment arFragment;
 
@@ -31,14 +37,24 @@ public class Manager {
 
     private boolean isProcessing = false;
 
+    private boolean shouldProcess = false;
+    private final MutableLiveData<Boolean> shouldAlert = new MutableLiveData<>(true);
+    private final MutableLiveData<Boolean> showMetricsOnScreen = new MutableLiveData<>(false);
+    private final MutableLiveData<Float> FPS = new MutableLiveData<>(0f);
+    private final MutableLiveData<Float> latency = new MutableLiveData<>(0f);
+
     float EPSILON = 0.05f; // distância mínima para considerar válida
 
-    public Manager(DetectorModel detector, OverlayView overlayView, ArFragment arFragment, int screenWidth, int screenHeight) {
+    // Metrics
+    private int framesProcessed = 0;
+    private long lastFpsTimestamp = 0;
+
+    public Manager(Context context, DetectorModel detector, OverlayView overlayView, ArFragment arFragment, int screenWidth, int screenHeight) {
         this.detector = detector;
         this.overlayView = overlayView;
         this.arFragment = arFragment;
         this.riskAnalyzer = new RiskAnalyzer(screenWidth, screenHeight);
-
+        this.tts = new TTS(context);
     }
 
     public void startArCore() {
@@ -46,12 +62,16 @@ public class Manager {
     }
 
     private void handleFrameUpdate(FrameTime frameTime) {
-        if (isProcessing) return;
+        if (!shouldProcess || isProcessing) return;
 
         isProcessing = true;
+        long e2e_latency_start = System.nanoTime();
 
         Frame frame = arFragment.getArSceneView().getArFrame();
-        if (frame == null) return;
+        if (frame == null) {
+            isProcessing = false;
+            return;
+        }
 
         try {
             Image image = frame.acquireCameraImage();
@@ -68,7 +88,13 @@ public class Manager {
             long endTime = System.nanoTime();
             Log.d("Performance", "Tempo de processamento YOLO: " + (endTime - startTime) / 1_000_000.0 + " ms");
 
-            List<Pair<BoundingBox, Float>> nearObjects = ARCoreDistanceCalculation.getObjectsWithLessThanDistance(detectionResult, 3f, frame); //near objects, less than threshold
+            // Draw bounding boxes on the bitmap
+            List<Pair<BoundingBox, Float>> objects = ARCoreDistanceCalculation.getObjectDistances(detectionResult, frame);
+            mainHandler.post(() -> {
+                overlayView.setResults(objects);
+            });
+
+            List<Pair<BoundingBox, Float>> nearObjects = ARCoreDistanceCalculation.getObjectsWithLessThanDistance(objects, 3f); //near objects, less than threshold
 
             for (Pair<BoundingBox, Float> obj : nearObjects) {
                 Log.d("ARCoreDistance", "Objeto: " + obj.first.clsName + ", Distância: " + String.format("%.2f", obj.second) + " metros");
@@ -84,7 +110,34 @@ public class Manager {
 
             if (riskAssessment.shouldAlert()) {
                 Log.i("RiskAnalysis", "ALERTA: " + riskAssessment.getFullMessage());
+                if (Boolean.TRUE.equals(shouldAlert.getValue())) {
+                    tts.speak(riskAssessment.getMessage());
+                }
             }
+
+            // --- Metrics Calculation ---
+            // E2E latency
+            long e2e_latency_end = System.nanoTime();
+            double latency = (e2e_latency_end - e2e_latency_start) / 1_000_000.0;
+            this.latency.postValue((float) latency);
+            Log.d("Performance", "E2E Latency: " + String.format("%.2f", latency) + " ms");
+
+            // FPS Calculation
+            framesProcessed++;
+            long now = System.nanoTime();
+            if (lastFpsTimestamp == 0) { // First frame
+                lastFpsTimestamp = now;
+            }
+            long elapsedNanos = now - lastFpsTimestamp;
+
+            if (elapsedNanos > 1_000_000_000) { // More than 1 second
+                double fps = framesProcessed / (elapsedNanos / 1_000_000_000.0);
+                this.FPS.postValue((float) fps);
+                Log.d("Performance", "FPS: " + String.format("%.2f", fps));
+                framesProcessed = 0;
+                lastFpsTimestamp = now;
+            }
+            // --- End FPS Calculation ---
 
             isProcessing = false;
         } catch (Exception e) {
@@ -94,14 +147,56 @@ public class Manager {
     }
 
     public Pair<Bitmap, List<BoundingBox>> process(Bitmap image) {
-        Pair<Bitmap, List<BoundingBox>> results = detector.Detect(image);
-
-        mainHandler.post(() -> {
-            overlayView.setResults(results.second);
-        });
-
-        return results;
+        return detector.Detect(image);
     }
 
+    public LiveData<Boolean> getTtsInitialized() {
+        return tts.isInitialized();
+    }
 
+    public LiveData<Boolean> getShouldAlert() {
+        return shouldAlert;
+    }
+
+    public LiveData<Boolean> getShowMetricsOnScreen() {
+        return showMetricsOnScreen;
+    }
+
+    public LiveData<Float> getFPS() {
+        return FPS;
+    }
+
+    public LiveData<Float> getLatency() {
+        return latency;
+    }
+
+    public void toggleProcessing() {
+        shouldProcess = !shouldProcess;
+        // Clear overlay when not processing frames
+        if (!shouldProcess) {
+            mainHandler.post(() -> overlayView.setResults(null));
+        }
+    }
+
+    public void toggleTTS() {
+        shouldAlert.setValue(!Boolean.TRUE.equals(shouldAlert.getValue()));
+        // Clear TTS queue
+        if (!Boolean.TRUE.equals(shouldAlert.getValue())) {
+            tts.stop();
+        }
+    }
+
+    public void toggleMetricsOnScreen() {
+        showMetricsOnScreen.setValue(!Boolean.TRUE.equals(showMetricsOnScreen.getValue()));
+    }
+
+    public void repeatLastAlert() {
+        if (Boolean.TRUE.equals(shouldAlert.getValue())) {
+            tts.repeatLastAlert();
+        }
+    }
+
+    public void shutdown() {
+        tts.shutdown();
+    }
 }

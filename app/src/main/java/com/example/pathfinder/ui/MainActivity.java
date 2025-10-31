@@ -20,7 +20,6 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.example.pathfinder.R;
 import com.example.pathfinder.detection.YoloNano;
-import com.example.pathfinder.detection.YoloSmall;
 import com.example.pathfinder.manager.Manager;
 import com.google.ar.sceneform.ux.ArFragment;
 
@@ -32,6 +31,10 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
     private OverlayView overlayView;
+    private ExecutorService cameraExecutor;
+    private TextView ttsStatus;
+    private TextView fpsBox;
+    private TextView latencyBox;
 
     private TextView permissionDeniedText;
     private Manager manager;
@@ -71,7 +74,11 @@ public class MainActivity extends AppCompatActivity {
         arFragment = (ArFragment) getSupportFragmentManager().findFragmentById(R.id.arFragment);
 
         overlayView = findViewById(R.id.overlay);
-        setupButtons();
+
+        ttsStatus = findViewById(R.id.ttsStatus);
+        fpsBox = findViewById(R.id.metricsFPSBox);
+        latencyBox = findViewById(R.id.metricsLatencyBox);
+
 
         YoloNano detector = null;
         try {
@@ -85,7 +92,35 @@ public class MainActivity extends AppCompatActivity {
         int screenHeight = getResources().getDisplayMetrics().heightPixels;
 
         managerExecutor = Executors.newSingleThreadExecutor();
-        manager = new Manager(detector, overlayView, arFragment, screenWidth, screenHeight);
+        manager = new Manager(this, detector, overlayView, arFragment, screenWidth, screenHeight);
+
+        setupButtons();
+
+        manager.getTtsInitialized().observe(this, isInitialized -> {
+            if (isInitialized) {
+                ttsStatus.setVisibility(View.GONE);
+            } else {
+                ttsStatus.setVisibility(View.VISIBLE);
+            }
+        });
+
+        manager.getShowMetricsOnScreen().observe(this, showMetrics -> {
+            if (showMetrics) {
+                fpsBox.setVisibility(View.VISIBLE);
+                latencyBox.setVisibility(View.VISIBLE);
+            } else {
+                fpsBox.setVisibility(View.GONE);
+                latencyBox.setVisibility(View.GONE);
+            }
+        });
+
+        manager.getFPS().observe(this, fps -> {
+            fpsBox.setText(String.format("FPS: %.2f", fps));
+        });
+
+        manager.getLatency().observe(this, latency -> {
+            latencyBox.setText(String.format("Latência: %.2fms", latency));
+        });
 
         if (allPermissionsGranted()) {
             manager.startArCore();
@@ -100,21 +135,32 @@ public class MainActivity extends AppCompatActivity {
         ImageButton onOffButton = findViewById(R.id.onOffButton);
         ImageButton soundButton = findViewById(R.id.soundButton);
         ImageButton repeatButton = findViewById(R.id.repeatButton);
+        ImageButton metricsButton = findViewById(R.id.metricsButton);
+
+        // Change the button images based on the manager's state
+        manager.getShouldAlert().observe(this, shouldAlert -> {
+            if (shouldAlert) {
+                soundButton.setImageResource(android.R.drawable.ic_lock_silent_mode_off);
+            } else {
+                soundButton.setImageResource(android.R.drawable.ic_lock_silent_mode);
+            }
+        });
 
         // Set click listeners
         onOffButton.setOnClickListener(v -> {
-            Toast.makeText(this, "On/Off button clicked", Toast.LENGTH_SHORT).show();
-            // Action for this button will go here later
+            manager.toggleProcessing();
         });
 
         soundButton.setOnClickListener(v -> {
-            Toast.makeText(this, "Sound button clicked", Toast.LENGTH_SHORT).show();
-            // Action for this button will go here later
+            manager.toggleTTS();
         });
 
         repeatButton.setOnClickListener(v -> {
-            Toast.makeText(this, "Repeat button clicked", Toast.LENGTH_SHORT).show();
-            // Action for this button will go here later
+            manager.repeatLastAlert();
+        });
+
+        metricsButton.setOnClickListener(v -> {
+            manager.toggleMetricsOnScreen();
         });
     }
 
@@ -132,6 +178,9 @@ public class MainActivity extends AppCompatActivity {
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
+        }
+        if (manager != null) {
+            manager.shutdown();
         }
     }
 
