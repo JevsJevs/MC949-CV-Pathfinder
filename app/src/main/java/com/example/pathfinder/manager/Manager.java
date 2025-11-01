@@ -1,13 +1,16 @@
 package com.example.pathfinder.manager;
 
+
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.media.Image;
 import android.os.Handler;
 import android.os.Looper;
+import android.se.omapi.Session;
 import android.util.Log;
 import android.util.Pair;
 
+import androidx.camera.core.impl.Config;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
@@ -17,12 +20,15 @@ import com.example.pathfinder.risk.RiskAnalyzer;
 import com.example.pathfinder.risk.RiskAssessment;
 import com.example.pathfinder.slam.ARCoreDistanceCalculation;
 import com.example.pathfinder.tts.TTS;
+import com.example.pathfinder.tts.TTSMessage;
 import com.example.pathfinder.ui.OverlayView;
 import com.example.pathfinder.utils.ImageUtils;
 import com.google.ar.core.Frame;
+import com.google.ar.core.TrackingFailureReason;
 import com.google.ar.sceneform.FrameTime;
 import com.google.ar.sceneform.ux.ArFragment;
 
+import com.example.pathfinder.risk.RiskLevel;
 import java.util.List;
 
 public class Manager {
@@ -45,6 +51,8 @@ public class Manager {
 
     float EPSILON = 0.05f; // distância mínima para considerar válida
 
+    private int arErrorMessageCooldown = 0;
+
     // Metrics
     private int framesProcessed = 0;
     private long lastFpsTimestamp = 0;
@@ -55,6 +63,26 @@ public class Manager {
         this.arFragment = arFragment;
         this.riskAnalyzer = new RiskAnalyzer(screenWidth, screenHeight);
         this.tts = new TTS(context);
+    }
+
+    private static TTSMessage.Priority convertRiskToTtsPriority(RiskLevel riskLevel) {
+        if (riskLevel == null) {
+            return TTSMessage.Priority.LOW;
+        }
+
+        switch (riskLevel) {
+            case CRITICAL:
+                return TTSMessage.Priority.CRITICAL;
+            case HIGH:
+                return TTSMessage.Priority.HIGH;
+            case MEDIUM:
+                return TTSMessage.Priority.MEDIUM;
+            case SAFE:
+            case LOW:
+            default:
+                // Grouping SAFE and LOW into the same TTS priority level
+                return TTSMessage.Priority.LOW;
+        }
     }
 
     public void startArCore() {
@@ -88,6 +116,28 @@ public class Manager {
             long endTime = System.nanoTime();
             Log.d("Performance", "Tempo de processamento YOLO: " + (endTime - startTime) / 1_000_000.0 + " ms");
 
+
+            // Check ARCore state
+            TrackingFailureReason arCoreState = ARCoreDistanceCalculation.getARCoreState(frame);
+            if (arCoreState != null) {
+                Log.e("ARCore", "ARCore state: " + arCoreState.toString());
+                if (arErrorMessageCooldown == 0) {
+                    String alert = "";
+                    if (arCoreState == TrackingFailureReason.INSUFFICIENT_FEATURES) {
+                        alert = "Não foi possível mapear esta área";
+                    }
+                    else if (arCoreState == TrackingFailureReason.EXCESSIVE_MOTION) {
+                        alert = "Movimento excessivo. Por favor, mova o celular mais lentamente";
+                    }
+                    else if (arCoreState == TrackingFailureReason.INSUFFICIENT_LIGHT) {
+                        alert = "Luz insuficiente. Por favor, ligue a luz do celular";
+                    }
+
+                    TTSMessage message = new TTSMessage(alert, TTSMessage.Priority.CRITICAL);
+                    tts.speak(message);
+                    arErrorMessageCooldown = 100; // o certo seria por segundos, mas aqui é MVP
+                }
+            }
             // Draw bounding boxes on the bitmap
             List<Pair<BoundingBox, Float>> objects = ARCoreDistanceCalculation.getObjectDistances(detectionResult, frame);
             mainHandler.post(() -> {
@@ -111,7 +161,9 @@ public class Manager {
             if (riskAssessment.shouldAlert()) {
                 Log.i("RiskAnalysis", "ALERTA: " + riskAssessment.getFullMessage());
                 if (Boolean.TRUE.equals(shouldAlert.getValue())) {
-                    tts.speak(riskAssessment.getMessage());
+                    TTSMessage message = new TTSMessage(riskAssessment.getMessage(),
+                                                        convertRiskToTtsPriority(riskAssessment.getRiskLevel()));
+                    tts.speak(message);
                 }
             }
 
@@ -143,6 +195,10 @@ public class Manager {
         } catch (Exception e) {
             Log.e("ARCore", "Erro ao capturar frame: " + e.getMessage());
             isProcessing = false;
+        }
+        finally {
+            if (arErrorMessageCooldown > 0)
+                arErrorMessageCooldown--;
         }
     }
 
